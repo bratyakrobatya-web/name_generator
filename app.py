@@ -579,44 +579,55 @@ st.markdown(f'''
 
 <script>
 function copyToClipboard(text, buttonId) {{
+    // Try the modern API first
     if (navigator.clipboard && navigator.clipboard.writeText) {{
         navigator.clipboard.writeText(text).then(function() {{
-            var btn = document.getElementById(buttonId);
-            if (btn) {{
-                btn.innerText = '✓ Скопировано';
-                setTimeout(function() {{
-                    btn.innerText = 'Копировать';
-                }}, 1500);
-            }}
+            showSuccess(buttonId);
         }}).catch(function(err) {{
-            console.error('Ошибка копирования (clipboard API):', err);
-            fallbackCopyTextToClipboard(text, buttonId);
+            console.warn('Clipboard API failed, trying fallback:', err);
+            fallbackCopy(text, buttonId);
         }});
     }} else {{
-        fallbackCopyTextToClipboard(text, buttonId);
+        fallbackCopy(text, buttonId);
     }}
 }}
 
-function fallbackCopyTextToClipboard(text, buttonId) {{
-    var textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.style.position = 'fixed';
-    textarea.style.left = '-9999px';
-    document.body.appendChild(textarea);
-    textarea.select();
+function fallbackCopy(text, buttonId) {{
+    var textArea = document.createElement("textarea");
+    textArea.value = text;
+    
+    // Ensure it's part of the DOM and selectable, but not visible
+    textArea.style.position = "fixed";
+    textArea.style.left = "0";
+    textArea.style.top = "0";
+    textArea.style.opacity = "0";
+    textArea.style.pointerEvents = "none";
+    
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
     try {{
-        document.execCommand('copy');
-        var btn = document.getElementById(buttonId);
-        if (btn) {{
-            btn.innerText = '✓ Скопировано';
-            setTimeout(function() {{
-                btn.innerText = 'Копировать';
-            }}, 1500);
+        var successful = document.execCommand('copy');
+        if (successful) {{
+            showSuccess(buttonId);
+        }} else {{
+            console.error('Fallback copy failed.');
         }}
     }} catch (err) {{
-        console.error('Ошибка копирования (fallback):', err);
+        console.error('Fallback copy error:', err);
     }} finally {{
-        document.body.removeChild(textarea);
+        document.body.removeChild(textArea);
+    }}
+}}
+
+function showSuccess(buttonId) {{
+    var btn = document.getElementById(buttonId);
+    if (btn) {{
+        btn.innerText = '✓ Скопировано';
+        setTimeout(function() {{
+            btn.innerText = 'Копировать';
+        }}, 1500);
     }}
 }}
 </script>
