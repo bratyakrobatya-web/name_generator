@@ -560,81 +560,6 @@ if st.session_state.campaign_name or st.session_state.final_link:
         """
         st.markdown(copy_both_js, unsafe_allow_html=True)
 
-st.divider()
-
-# ============================================================
-# КНОПКИ КОПИРОВАНИЯ (с записью в историю)
-# ============================================================
-
-st.subheader("📋 Копирование результатов")
-st.caption("При копировании результат автоматически сохраняется в историю")
-
-copy_col1, copy_col2 = st.columns(2)
-
-with copy_col1:
-    if preview:
-        if st.button("📋 Копировать нейминг", type="primary", use_container_width=True, key="copy_naming_btn"):
-            # Копируем в буфер через JavaScript
-            st.session_state.history.append({
-                'datetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'type': 'Нейминг',
-                'value': preview
-            })
-            st.toast("Нейминг скопирован и сохранён в историю!", icon="✅")
-            # JavaScript для копирования
-            escaped_preview = preview.replace("'", "\\'").replace('"', '\\"')
-            st.markdown(f'''<script>navigator.clipboard.writeText("{escaped_preview}");</script>''', unsafe_allow_html=True)
-    else:
-        st.button("📋 Копировать нейминг", type="secondary", use_container_width=True, disabled=True, key="copy_naming_btn_disabled")
-
-with copy_col2:
-    # Формируем UTM превью для кнопки
-    current_base_link_btn = st.session_state.get('base_link', '')
-    current_utm_source_btn = st.session_state.get('utm_source_select', '')
-    current_utm_medium_btn = st.session_state.get('utm_medium_select', '')
-    current_utm_campaign_btn = st.session_state.get('utm_campaign', '') or preview
-    current_utm_content_btn = st.session_state.get('utm_content_select', '')
-    current_utm_term_btn = st.session_state.get('utm_term_select', '')
-    current_utm_vacancy_btn = st.session_state.get('utm_vacancy_select', '')
-    
-    utm_parts_btn = []
-    if current_utm_source_btn:
-        utm_parts_btn.append(f"utm_source={current_utm_source_btn}")
-    if current_utm_medium_btn:
-        utm_parts_btn.append(f"utm_medium={current_utm_medium_btn}")
-    if current_utm_campaign_btn:
-        utm_parts_btn.append(f"utm_campaign={current_utm_campaign_btn}")
-    if current_utm_content_btn:
-        utm_parts_btn.append(f"utm_content={current_utm_content_btn}")
-    if current_utm_term_btn:
-        utm_parts_btn.append(f"utm_term={current_utm_term_btn}")
-    if current_utm_vacancy_btn:
-        utm_parts_btn.append(f"utm_vacancy={current_utm_vacancy_btn}")
-    
-    utm_preview_btn = ""
-    if current_base_link_btn and utm_parts_btn:
-        separator = "&" if "?" in current_base_link_btn else "?"
-        utm_preview_btn = f"{current_base_link_btn}{separator}{'&'.join(utm_parts_btn)}"
-    elif current_base_link_btn:
-        utm_preview_btn = current_base_link_btn
-    elif utm_parts_btn:
-        utm_preview_btn = f"?{'&'.join(utm_parts_btn)}"
-    
-    if utm_preview_btn:
-        if st.button("📋 Копировать UTM ссылку", type="primary", use_container_width=True, key="copy_utm_btn"):
-            st.session_state.history.append({
-                'datetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'type': 'UTM ссылка',
-                'value': utm_preview_btn
-            })
-            st.toast("UTM ссылка скопирована и сохранена в историю!", icon="✅")
-            escaped_utm_btn = utm_preview_btn.replace("'", "\\'").replace('"', '\\"')
-            st.markdown(f'''<script>navigator.clipboard.writeText("{escaped_utm_btn}");</script>''', unsafe_allow_html=True)
-    else:
-        st.button("📋 Копировать UTM ссылку", type="secondary", use_container_width=True, disabled=True, key="copy_utm_btn_disabled")
-
-st.divider()
-
 # Отступ внизу страницы чтобы контент не перекрывался фиксированной панелью
 st.markdown("<div style='height: 180px;'></div>", unsafe_allow_html=True)
 
@@ -687,42 +612,129 @@ utm_color = "#64B5F6" if utm_preview else "#888"
 escaped_naming = preview.replace("'", "\\'").replace('"', '\\"').replace('\n', '') if preview else ""
 escaped_utm = utm_preview.replace("'", "\\'").replace('"', '\\"').replace('\n', '') if utm_preview else ""
 
-# Формируем кнопки копирования с фиксированной шириной
-btn_style = "min-width:140px;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:500;border:none;color:#fff;"
-
-copy_btn_naming = ""
-if preview:
-    # При копировании добавляем в историю через fetch к Streamlit (workaround - используем sessionStorage)
-    copy_btn_naming = f'''<button style="{btn_style}background:#4CAF50;" onclick="navigator.clipboard.writeText('{escaped_naming}');this.innerText='✓ Скопировано';localStorage.setItem('copy_naming','{escaped_naming}');setTimeout(()=>this.innerText='📋 Копировать',1500)">📋 Копировать</button>'''
-else:
-    copy_btn_naming = f'''<div style="{btn_style}background:#555;min-width:140px;text-align:center;opacity:0.5;">📋 Копировать</div>'''
-
-copy_btn_utm = ""
-if utm_preview:
-    copy_btn_utm = f'''<button style="{btn_style}background:#2196F3;" onclick="navigator.clipboard.writeText('{escaped_utm}');this.innerText='✓ Скопировано';localStorage.setItem('copy_utm','{escaped_utm}');setTimeout(()=>this.innerText='📋 Копировать',1500)">📋 Копировать</button>'''
-else:
-    copy_btn_utm = f'''<div style="{btn_style}background:#555;min-width:140px;text-align:center;opacity:0.5;">📋 Копировать</div>'''
-
-# Единый HTML блок - увеличенный размер с выровненными кнопками
+# Кнопки копирования - делаем через Streamlit для записи в историю
+# Размещаем в фиксированном контейнере внизу
 st.markdown(f'''
-<div style="position:fixed;bottom:0;left:0;right:0;background:linear-gradient(135deg,#1a1a2e,#16213e);padding:18px 30px;box-shadow:0 -6px 30px rgba(0,0,0,0.4);z-index:9999;border-top:4px solid {progress_bar_color};">
-<div style="max-width:1600px;margin:0 auto;">
-<div style="display:flex;align-items:center;margin-bottom:12px;gap:15px;">
-<span style="color:#ccc;font-size:14px;min-width:80px;font-weight:600;">Нейминг:</span>
-<code style="background:#2d2d44;color:{naming_color};padding:12px 18px;border-radius:6px;font-size:16px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace;">{preview_display}</code>
-{copy_btn_naming}
-<div style="display:flex;align-items:center;gap:10px;min-width:200px;">
-<div style="width:150px;background:#333;border-radius:10px;height:10px;overflow:hidden;">
-<div style="width:{progress_percent}%;background:{progress_bar_color};height:100%;"></div>
+<style>
+.fixed-panel {{
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    padding: 18px 30px;
+    box-shadow: 0 -6px 30px rgba(0,0,0,0.4);
+    z-index: 9999;
+    border-top: 4px solid {progress_bar_color};
+}}
+.panel-inner {{
+    max-width: 1600px;
+    margin: 0 auto;
+}}
+.panel-row {{
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 15px;
+}}
+.panel-row:last-child {{
+    margin-bottom: 0;
+}}
+.panel-label {{
+    color: #ccc;
+    font-size: 14px;
+    min-width: 80px;
+    font-weight: 600;
+}}
+.panel-code {{
+    background: #2d2d44;
+    padding: 12px 18px;
+    border-radius: 6px;
+    font-size: 16px;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: monospace;
+}}
+.panel-code-naming {{
+    color: {naming_color};
+}}
+.panel-code-utm {{
+    color: {utm_color};
+}}
+.progress-area {{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 200px;
+}}
+.progress-bar-outer {{
+    width: 150px;
+    background: #333;
+    border-radius: 10px;
+    height: 10px;
+    overflow: hidden;
+}}
+.progress-bar-inner {{
+    width: {progress_percent}%;
+    background: {progress_bar_color};
+    height: 100%;
+}}
+.progress-text {{
+    color: #fff;
+    font-size: 14px;
+    font-weight: bold;
+}}
+.spacer {{
+    min-width: 200px;
+}}
+</style>
+''', unsafe_allow_html=True)
+
+# Создаём контейнер для кнопок Streamlit (они будут скрыты, но функциональны)
+copy_naming_col, copy_utm_col = st.columns(2)
+
+with copy_naming_col:
+    if preview:
+        if st.button("📋 Копировать нейминг и сохранить", key="panel_copy_naming", use_container_width=True):
+            st.session_state.history.append({
+                'datetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'type': 'Нейминг',
+                'value': preview
+            })
+            st.toast("✅ Нейминг скопирован и сохранён в историю!")
+            st.markdown(f'<script>navigator.clipboard.writeText("{escaped_naming}");</script>', unsafe_allow_html=True)
+
+with copy_utm_col:
+    if utm_preview:
+        if st.button("📋 Копировать UTM и сохранить", key="panel_copy_utm", use_container_width=True):
+            st.session_state.history.append({
+                'datetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'type': 'UTM ссылка',
+                'value': utm_preview
+            })
+            st.toast("✅ UTM ссылка скопирована и сохранена в историю!")
+            st.markdown(f'<script>navigator.clipboard.writeText("{escaped_utm}");</script>', unsafe_allow_html=True)
+
+# HTML панель (только для отображения)
+st.markdown(f'''
+<div class="fixed-panel">
+<div class="panel-inner">
+<div class="panel-row">
+<span class="panel-label">Нейминг:</span>
+<code class="panel-code panel-code-naming">{preview_display}</code>
+<div class="progress-area">
+<div class="progress-bar-outer">
+<div class="progress-bar-inner"></div>
 </div>
-<span style="color:#fff;font-size:14px;font-weight:bold;">{completed}/{total}</span>
+<span class="progress-text">{completed}/{total}</span>
 </div>
 </div>
-<div style="display:flex;align-items:center;gap:15px;">
-<span style="color:#ccc;font-size:14px;min-width:80px;font-weight:600;">UTM:</span>
-<code style="background:#2d2d44;color:{utm_color};padding:12px 18px;border-radius:6px;font-size:16px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace;">{utm_display}</code>
-{copy_btn_utm}
-<div style="min-width:200px;"></div>
+<div class="panel-row">
+<span class="panel-label">UTM:</span>
+<code class="panel-code panel-code-utm">{utm_display}</code>
+<div class="spacer"></div>
 </div>
 </div>
 </div>
