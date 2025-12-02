@@ -22,39 +22,17 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap');
 
-/* Применяем шрифт ко всем элементам кроме иконок */
-html, body, [class*="css"], .stApp {
-    font-family: 'Golos Text', sans-serif !important;
+/* Применяем Golos Text только к текстовым элементам */
+.stMarkdown p, .stMarkdown li, .stMarkdown span {
+    font-family: 'Golos Text', sans-serif;
 }
 
-h1, h2, h3, h4, h5, h6, p, span, div, label {
-    font-family: 'Golos Text', sans-serif !important;
-}
-
-/* Кнопки - исключаем иконочные */
-button:not([kind="icon"]):not([data-testid="baseButton-headerNoPadding"]):not([data-testid="collapsedControl"]) {
-    font-family: 'Golos Text', sans-serif !important;
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Golos Text', sans-serif;
 }
 
 .stSelectbox label, .stMultiSelect label, .stTextInput label {
-    font-family: 'Golos Text', sans-serif !important;
-}
-
-.stSelectbox div, .stMultiSelect div, .stTextInput input {
-    font-family: 'Golos Text', sans-serif !important;
-}
-
-.stMarkdown, .stMarkdown p {
-    font-family: 'Golos Text', sans-serif !important;
-}
-
-/* Иконки сайдбара - системный шрифт */
-[data-testid="collapsedControl"],
-[data-testid="stSidebarCollapseButton"],
-.css-1rs6os,
-button[kind="icon"],
-[data-testid="baseButton-headerNoPadding"] {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    font-family: 'Golos Text', sans-serif;
 }
 
 /* Исключение для code блоков */
@@ -677,7 +655,7 @@ if st.session_state.campaign_name or st.session_state.final_link:
 st.divider()
 
 # Отступ внизу страницы чтобы контент не перекрывался фиксированной панелью
-st.markdown("<div style='height: 120px;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height: 160px;'></div>", unsafe_allow_html=True)
 
 # ============================================================
 # ФИКСИРОВАННАЯ ПАНЕЛЬ ВНИЗУ
@@ -731,30 +709,30 @@ escaped_utm = utm_preview.replace("'", "\\'").replace('"', '\\"').replace('\n', 
 # Формируем кнопки копирования
 copy_btn_naming = ""
 if preview:
-    copy_btn_naming = f'''<button style="background:#4CAF50;color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;" onclick="navigator.clipboard.writeText('{escaped_naming}');this.innerText='✓';setTimeout(()=>this.innerText='📋',1500)">📋</button>'''
+    copy_btn_naming = f'''<button style="background:#4CAF50;color:#fff;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:500;" onclick="navigator.clipboard.writeText('{escaped_naming}');this.innerText='✓ Скопировано';setTimeout(()=>this.innerText='📋 Копировать',1500)">📋 Копировать</button>'''
 
 copy_btn_utm = ""
 if utm_preview:
-    copy_btn_utm = f'''<button style="background:#2196F3;color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;" onclick="navigator.clipboard.writeText('{escaped_utm}');this.innerText='✓';setTimeout(()=>this.innerText='📋',1500)">📋</button>'''
+    copy_btn_utm = f'''<button style="background:#2196F3;color:#fff;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:500;" onclick="navigator.clipboard.writeText('{escaped_utm}');this.innerText='✓ Скопировано';setTimeout(()=>this.innerText='📋 Копировать',1500)">📋 Копировать</button>'''
 
-# Единый HTML блок
+# Единый HTML блок - увеличенный размер
 st.markdown(f'''
-<div style="position:fixed;bottom:0;left:0;right:0;background:linear-gradient(135deg,#1a1a2e,#16213e);padding:10px 20px;box-shadow:0 -4px 20px rgba(0,0,0,0.3);z-index:9999;border-top:3px solid {progress_bar_color};">
-<div style="max-width:1400px;margin:0 auto;">
-<div style="display:flex;align-items:center;margin-bottom:4px;gap:10px;">
-<span style="color:#aaa;font-size:11px;min-width:65px;">Нейминг:</span>
-<code style="background:#2d2d44;color:{naming_color};padding:6px 12px;border-radius:4px;font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{preview_display}</code>
+<div style="position:fixed;bottom:0;left:0;right:0;background:linear-gradient(135deg,#1a1a2e,#16213e);padding:18px 30px;box-shadow:0 -6px 30px rgba(0,0,0,0.4);z-index:9999;border-top:4px solid {progress_bar_color};">
+<div style="max-width:1600px;margin:0 auto;">
+<div style="display:flex;align-items:center;margin-bottom:12px;gap:15px;">
+<span style="color:#ccc;font-size:14px;min-width:80px;font-weight:600;">Нейминг:</span>
+<code style="background:#2d2d44;color:{naming_color};padding:12px 18px;border-radius:6px;font-size:16px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace;">{preview_display}</code>
 {copy_btn_naming}
-<div style="display:flex;align-items:center;gap:8px;">
-<div style="width:120px;background:#333;border-radius:10px;height:6px;overflow:hidden;">
+<div style="display:flex;align-items:center;gap:10px;margin-left:10px;">
+<div style="width:150px;background:#333;border-radius:10px;height:10px;overflow:hidden;">
 <div style="width:{progress_percent}%;background:{progress_bar_color};height:100%;"></div>
 </div>
-<span style="color:#fff;font-size:11px;font-weight:bold;">{completed}/{total}</span>
+<span style="color:#fff;font-size:14px;font-weight:bold;">{completed}/{total}</span>
 </div>
 </div>
-<div style="display:flex;align-items:center;gap:10px;">
-<span style="color:#aaa;font-size:11px;min-width:65px;">UTM:</span>
-<code style="background:#2d2d44;color:{utm_color};padding:6px 12px;border-radius:4px;font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{utm_display}</code>
+<div style="display:flex;align-items:center;gap:15px;">
+<span style="color:#ccc;font-size:14px;min-width:80px;font-weight:600;">UTM:</span>
+<code style="background:#2d2d44;color:{utm_color};padding:12px 18px;border-radius:6px;font-size:16px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace;">{utm_display}</code>
 {copy_btn_utm}
 </div>
 </div>
