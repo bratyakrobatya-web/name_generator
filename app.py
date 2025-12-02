@@ -183,6 +183,27 @@ def clear_all():
 
 st.title("🏷️ Генератор нейминга кампании и UTM")
 
+# Справка в раскрывающемся блоке
+with st.expander("ℹ️ Справка по использованию"):
+    st.markdown("""
+    **Этап 1** — Нейминг кампании:
+    - Заполняйте поля последовательно (следующее разблокируется после заполнения предыдущего)
+    - "Тип кампании" — можно выбрать несколько значений (объединятся через `&`)
+    - Нейминг генерируется автоматически — смотрите панель внизу экрана
+    - Нажмите **Сохранить в историю** для сохранения результата
+    
+    **Этап 2** — UTM ссылка:
+    - Введите базовую ссылку (должна начинаться с http:// или https://)
+    - Выберите UTM параметры (utm_campaign заполнится автоматически из нейминга)
+    - Нажмите **GENERATE LINK + UTM**
+    
+    **Функции:** ➕ Добавить своё значение | 📋 Копировать результат | 📜 История генераций | 📥 Скачать в файл
+    
+    **Пример нейминга:** `adtech-b2c_lpv_cpa_telegram_mk_astrakhan_users_tresponse`
+    
+    **TG Ads:** utm_medium=cpc_yandex_direct, utm_vacancy={utm_vacancy}
+    """)
+
 # Кнопка сброса в правом верхнем углу
 col_title, col_reset = st.columns([5, 1])
 with col_reset:
@@ -659,50 +680,6 @@ st.divider()
 st.markdown("<div style='height: 120px;'></div>", unsafe_allow_html=True)
 
 # ============================================================
-# САЙДБАР СО СПРАВКОЙ
-# ============================================================
-
-with st.sidebar:
-    st.header("ℹ️ Справка")
-    
-    st.markdown("""
-    ### Как пользоваться
-    
-    **Этап 1** — Нейминг кампании:
-    - Заполняйте поля последовательно
-    - "Тип кампании" — можно несколько значений (объединятся через `&`)
-    - Нейминг генерируется автоматически внизу
-    - Нажмите **Сохранить в историю**
-    
-    **Этап 2** — UTM ссылка:
-    - Введите базовую ссылку (http:// или https://)
-    - Выберите UTM параметры
-    - Нажмите **GENERATE LINK + UTM**
-    
-    ---
-    
-    ### Функции
-    - ➕ Добавить своё значение
-    - 📋 Копировать результат
-    - 📜 История генераций
-    - 📥 Скачать в файл
-    - 🔄 Сбросить всё
-    
-    ---
-    
-    ### Пример нейминга
-    ```
-    adtech-b2c_lpv_cpa_telegram_mk_astrakhan_users_tresponse
-    ```
-    
-    ---
-    
-    ### TG Ads
-    *utm_medium=cpc_yandex_direct*  
-    *utm_vacancy={utm_vacancy}*
-    """)
-
-# ============================================================
 # ФИКСИРОВАННАЯ ПАНЕЛЬ ВНИЗУ
 # ============================================================
 
@@ -748,218 +725,38 @@ utm_display = utm_preview if utm_preview else "Введите ссылку и UT
 utm_color = "#64B5F6" if utm_preview else "#888"
 
 # Экранируем для JavaScript
-escaped_naming = preview.replace("'", "\\'").replace('"', '\\"') if preview else ""
-escaped_utm = utm_preview.replace("'", "\\'").replace('"', '\\"') if utm_preview else ""
+escaped_naming = preview.replace("'", "\\'").replace('"', '\\"').replace('\n', '') if preview else ""
+escaped_utm = utm_preview.replace("'", "\\'").replace('"', '\\"').replace('\n', '') if utm_preview else ""
 
-# Формируем HTML с адаптивным отступом слева для сайдбара
-fixed_panel_html = f"""
-<style>
-.fixed-bottom-panel {{
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    padding: 10px 20px;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
-    z-index: 9999;
-    border-top: 3px solid {progress_bar_color};
-    font-family: 'Golos Text', sans-serif !important;
-    transition: left 0.3s ease;
-}}
-
-/* Адаптация под сайдбар Streamlit */
-/* Когда сайдбар открыт - на десктопе */
-@media (min-width: 768px) {{
-    [data-testid="stSidebar"][aria-expanded="true"] ~ .main .fixed-bottom-panel,
-    .fixed-bottom-panel {{
-        left: 245px;
-    }}
-}}
-
-/* Когда сайдбар скрыт */
-[data-testid="stSidebar"][aria-expanded="false"] ~ .main .fixed-bottom-panel {{
-    left: 0;
-}}
-
-/* Мобильные устройства */
-@media (max-width: 767px) {{
-    .fixed-bottom-panel {{
-        left: 0 !important;
-    }}
-}}
-
-.panel-content {{
-    max-width: 1400px;
-    margin: 0 auto;
-}}
-
-.panel-row {{
-    display: flex;
-    align-items: center;
-    margin-bottom: 4px;
-    gap: 10px;
-}}
-
-.panel-label {{
-    color: #aaa;
-    font-size: 11px;
-    min-width: 65px;
-    font-family: 'Golos Text', sans-serif !important;
-}}
-
-.panel-value {{
-    background: #2d2d44;
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-family: 'Courier New', monospace !important;
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: calc(100% - 150px);
-}}
-
-.panel-value-naming {{
-    color: {naming_color};
-}}
-
-.panel-value-utm {{
-    color: {utm_color};
-}}
-
-.copy-btn {{
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-    font-family: 'Golos Text', sans-serif !important;
-    transition: background-color 0.2s;
-    white-space: nowrap;
-}}
-
-.copy-btn:hover {{
-    background-color: #45a049;
-}}
-
-.copy-btn-utm {{
-    background-color: #2196F3;
-}}
-
-.copy-btn-utm:hover {{
-    background-color: #1976D2;
-}}
-
-.progress-container {{
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}}
-
-.progress-bar-bg {{
-    width: 120px;
-    background: #333;
-    border-radius: 10px;
-    height: 6px;
-    overflow: hidden;
-}}
-
-.progress-bar-fill {{
-    width: {progress_percent}%;
-    background: {progress_bar_color};
-    height: 100%;
-    transition: width 0.3s;
-}}
-
-.progress-text {{
-    color: #fff;
-    font-size: 11px;
-    font-weight: bold;
-    font-family: 'Golos Text', sans-serif !important;
-}}
-</style>
-"""
-
-# Формируем кнопки копирования отдельно
+# Формируем кнопки копирования
 copy_btn_naming = ""
 if preview:
-    copy_btn_naming = f'<button class="copy-btn" onclick="navigator.clipboard.writeText(\'{escaped_naming}\'); this.innerText=\'✓\'; setTimeout(() => this.innerText=\'📋\', 1500);">📋</button>'
+    copy_btn_naming = f'''<button style="background:#4CAF50;color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;" onclick="navigator.clipboard.writeText('{escaped_naming}');this.innerText='✓';setTimeout(()=>this.innerText='📋',1500)">📋</button>'''
 
 copy_btn_utm = ""
 if utm_preview:
-    copy_btn_utm = f'<button class="copy-btn copy-btn-utm" onclick="navigator.clipboard.writeText(\'{escaped_utm}\'); this.innerText=\'✓\'; setTimeout(() => this.innerText=\'📋\', 1500);">📋</button>'
+    copy_btn_utm = f'''<button style="background:#2196F3;color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;" onclick="navigator.clipboard.writeText('{escaped_utm}');this.innerText='✓';setTimeout(()=>this.innerText='📋',1500)">📋</button>'''
 
-# HTML панели
-panel_html = f"""
-<div class="fixed-bottom-panel" id="bottomPanel">
-    <div class="panel-content">
-        <div class="panel-row">
-            <span class="panel-label">Нейминг:</span>
-            <code class="panel-value panel-value-naming">{preview_display}</code>
-            {copy_btn_naming}
-            <div class="progress-container">
-                <div class="progress-bar-bg">
-                    <div class="progress-bar-fill"></div>
-                </div>
-                <span class="progress-text">{completed}/{total}</span>
-            </div>
-        </div>
-        <div class="panel-row">
-            <span class="panel-label">UTM:</span>
-            <code class="panel-value panel-value-utm">{utm_display}</code>
-            {copy_btn_utm}
-        </div>
-    </div>
+# Единый HTML блок
+st.markdown(f'''
+<div style="position:fixed;bottom:0;left:0;right:0;background:linear-gradient(135deg,#1a1a2e,#16213e);padding:10px 20px;box-shadow:0 -4px 20px rgba(0,0,0,0.3);z-index:9999;border-top:3px solid {progress_bar_color};">
+<div style="max-width:1400px;margin:0 auto;">
+<div style="display:flex;align-items:center;margin-bottom:4px;gap:10px;">
+<span style="color:#aaa;font-size:11px;min-width:65px;">Нейминг:</span>
+<code style="background:#2d2d44;color:{naming_color};padding:6px 12px;border-radius:4px;font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{preview_display}</code>
+{copy_btn_naming}
+<div style="display:flex;align-items:center;gap:8px;">
+<div style="width:120px;background:#333;border-radius:10px;height:6px;overflow:hidden;">
+<div style="width:{progress_percent}%;background:{progress_bar_color};height:100%;"></div>
 </div>
-"""
-
-# JavaScript для отслеживания сайдбара
-script_html = """
-<script>
-(function() {
-    function updatePanelPosition() {
-        var panel = document.getElementById('bottomPanel');
-        var sidebar = document.querySelector('[data-testid="stSidebar"]');
-        
-        if (panel && sidebar) {
-            var isExpanded = sidebar.getAttribute('aria-expanded') === 'true';
-            var sidebarWidth = isExpanded ? sidebar.offsetWidth : 0;
-            
-            if (window.innerWidth >= 768) {
-                panel.style.left = sidebarWidth + 'px';
-            } else {
-                panel.style.left = '0px';
-            }
-        }
-    }
-    
-    var observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            if (mutation.attributeName === 'aria-expanded') {
-                updatePanelPosition();
-            }
-        });
-    });
-    
-    function startObserving() {
-        var sidebar = document.querySelector('[data-testid="stSidebar"]');
-        if (sidebar) {
-            observer.observe(sidebar, { attributes: true });
-            updatePanelPosition();
-        } else {
-            setTimeout(startObserving, 100);
-        }
-    }
-    
-    window.addEventListener('resize', updatePanelPosition);
-    startObserving();
-})();
-</script>
-"""
-
-# Выводим всё вместе
-st.markdown(fixed_panel_html + panel_html + script_html, unsafe_allow_html=True)
+<span style="color:#fff;font-size:11px;font-weight:bold;">{completed}/{total}</span>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:10px;">
+<span style="color:#aaa;font-size:11px;min-width:65px;">UTM:</span>
+<code style="background:#2d2d44;color:{utm_color};padding:6px 12px;border-radius:4px;font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{utm_display}</code>
+{copy_btn_utm}
+</div>
+</div>
+</div>
+''', unsafe_allow_html=True)
