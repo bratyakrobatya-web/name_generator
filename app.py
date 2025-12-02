@@ -306,39 +306,68 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("📌 Строгий набор нейминга")
-
+    
     # 1. Продукт - всегда активен
+    st.markdown('<p style="font-size: 18px; font-weight: 600; color: #1E5AA8; margin-bottom: 5px;">1. Продукт</p>', unsafe_allow_html=True)
     product = select_with_add("продукт", "Продукт", select_key="product", disabled=False)
-
+    
     # 2. Стрим - активен после выбора Продукта
     step2_disabled = not bool(product)
+    if step2_disabled:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">2. Стрим <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
+    else:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #1E5AA8; margin-bottom: 5px;">2. Стрим</p>', unsafe_allow_html=True)
     stream = select_with_add("стрим", "Стрим", select_key="stream", disabled=step2_disabled)
-
+    
     # 3. Статья расхода - активен после выбора Стрима
     step3_disabled = not bool(stream)
+    if step3_disabled:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">3. Статья расхода <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
+    else:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #1E5AA8; margin-bottom: 5px;">3. Статья расхода</p>', unsafe_allow_html=True)
     expense = select_with_add("статью расхода", "Статья расхода", select_key="expense", disabled=step3_disabled)
-
+    
     # 4. Источник - активен после выбора Статьи расхода
     step4_disabled = not bool(expense)
+    if step4_disabled:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">4. Источник <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
+    else:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #1E5AA8; margin-bottom: 5px;">4. Источник</p>', unsafe_allow_html=True)
     source = select_with_add("источник", "Источник", select_key="source", disabled=step4_disabled)
 
 with col2:
     st.subheader("🔄 Вариативный набор нейминга")
-
+    
     # 5. Тип кампании - активен после выбора Источника
     step5_disabled = not bool(source)
+    if step5_disabled:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">5. Тип кампании <span style="font-weight: 400; font-size: 14px;">(можно несколько)</span> <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
+    else:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #2E7D32; margin-bottom: 5px;">5. Тип кампании <span style="font-weight: 400; font-size: 14px;">(можно несколько)</span></p>', unsafe_allow_html=True)
     campaign_types = select_with_add("тип(ы) кампании", "Тип кампании", multiselect=True, select_key="campaign_types", disabled=step5_disabled)
-
+    
     # 6. Клиент/гео - активен после выбора Типа кампании
     step6_disabled = not bool(campaign_types)
+    if step6_disabled:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">6. Клиент/профроль/гео <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
+    else:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #2E7D32; margin-bottom: 5px;">6. Клиент/профроль/гео</p>', unsafe_allow_html=True)
     client_geo = select_with_add("клиента/гео", "Клиент/гео", select_key="client_geo", disabled=step6_disabled)
-
+    
     # 7. Таргетинг - активен после выбора Клиента/гео
     step7_disabled = not bool(client_geo)
+    if step7_disabled:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">7. Таргетинг <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
+    else:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #2E7D32; margin-bottom: 5px;">7. Таргетинг</p>', unsafe_allow_html=True)
     targeting = select_with_add("таргетинг", "Таргетинг", select_key="targeting", disabled=step7_disabled)
-
+    
     # 8. Цель - активен после выбора Таргетинга
     step8_disabled = not bool(targeting)
+    if step8_disabled:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">8. Цель <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
+    else:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #2E7D32; margin-bottom: 5px;">8. Цель</p>', unsafe_allow_html=True)
     goal = select_with_add("цель", "Цель", select_key="goal", disabled=step8_disabled)
 
 st.divider()
@@ -370,32 +399,56 @@ utm_cols = st.columns(3)
 
 with utm_cols[0]:
     # utm_source - активен после генерации нейминга
+    if not naming_ready:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">utm_source <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
+    else:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #6B4C9A; margin-bottom: 5px;">utm_source</p>', unsafe_allow_html=True)
     utm_source = select_with_add("источник", "utm_source", select_key="utm_source_select", disabled=not naming_ready)
-
+    
     # utm_medium - активен после выбора utm_source
     utm_medium_disabled = not bool(utm_source)
+    if utm_medium_disabled:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">utm_medium <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
+    else:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #6B4C9A; margin-bottom: 5px;">utm_medium</p>', unsafe_allow_html=True)
     utm_medium = select_with_add("канал", "utm_medium", select_key="utm_medium_select", disabled=utm_medium_disabled)
 
 with utm_cols[1]:
     # utm_campaign - автозаполнение, всегда активен после utm_medium (не блокирует другие)
     utm_campaign_disabled = not bool(utm_medium)
+    if utm_campaign_disabled:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">utm_campaign <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
+    else:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #6B4C9A; margin-bottom: 5px;">utm_campaign <span style="font-size: 12px; color: #888;">(авто)</span></p>', unsafe_allow_html=True)
     utm_campaign = st.text_input("Кампания",
                                  value=st.session_state.campaign_name,
                                  key="utm_campaign",
                                  help="Автоматически заполняется из нейминга выше",
                                  disabled=utm_campaign_disabled)
-
+    
     # utm_content - активен после utm_medium (не зависит от utm_campaign)
     utm_content_disabled = not bool(utm_medium)
+    if utm_content_disabled:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">utm_content <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
+    else:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #6B4C9A; margin-bottom: 5px;">utm_content</p>', unsafe_allow_html=True)
     utm_content = select_with_add("контент", "utm_content", select_key="utm_content_select", disabled=utm_content_disabled)
 
 with utm_cols[2]:
     # utm_term - активен после utm_medium
     utm_term_disabled = not bool(utm_medium)
+    if utm_term_disabled:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">utm_term <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
+    else:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #6B4C9A; margin-bottom: 5px;">utm_term</p>', unsafe_allow_html=True)
     utm_term = select_with_add("ключевое слово", "utm_term", select_key="utm_term_select", disabled=utm_term_disabled)
-
+    
     # utm_vacancy - активен после utm_medium
     utm_vacancy_disabled = not bool(utm_medium)
+    if utm_vacancy_disabled:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">utm_vacancy <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
+    else:
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #6B4C9A; margin-bottom: 5px;">utm_vacancy</p>', unsafe_allow_html=True)
     utm_vacancy = select_with_add("ID вакансии", "utm_vacancy", select_key="utm_vacancy_select", disabled=utm_vacancy_disabled)
 
 st.divider()
@@ -525,8 +578,7 @@ st.markdown(f'''
 </style>
 
 <script>
-function copyToClipboard(button) {{
-    var text = button.getAttribute('data-text');
+function copyToClipboard(text, buttonId) {{
     var textarea = document.createElement('textarea');
     textarea.value = text;
     textarea.style.position = 'fixed';
@@ -535,11 +587,13 @@ function copyToClipboard(button) {{
     textarea.select();
     try {{
         document.execCommand('copy');
-        var originalText = button.innerText;
-        button.innerText = '✓ Скопировано';
-        setTimeout(function() {{
-            button.innerText = originalText;
-        }}, 1500);
+        var btn = document.getElementById(buttonId);
+        if (btn) {{
+            btn.innerText = '✓ Скопировано';
+            setTimeout(function() {{
+                btn.innerText = '📋 Копировать';
+            }}, 1500);
+        }}
     }} catch (err) {{
         console.error('Ошибка копирования:', err);
     }} finally {{
@@ -553,12 +607,12 @@ function copyToClipboard(button) {{
         <div class="panel-row">
             <span class="panel-label">Нейминг:</span>
             <code class="panel-code" style="color:{naming_color};">{preview_display}</code>
-            {"<button id='btnNaming' class='copy-btn copy-btn-green' data-text='" + html.escape(preview, quote=True) + "' onclick='copyToClipboard(this)'>📋 Копировать</button>" if preview else "<div class='copy-btn copy-btn-disabled'>📋 Копировать</div>"}
+            {"<button id='btnNaming' class='copy-btn copy-btn-green' onclick='copyToClipboard(`" + preview + "`, `btnNaming`)'>📋 Копировать</button>" if preview else "<div class='copy-btn copy-btn-disabled'>📋 Копировать</div>"}
         </div>
         <div class="panel-row">
             <span class="panel-label">UTM:</span>
             <code class="panel-code" style="color:{utm_color};">{utm_display}</code>
-            {"<button id='btnUtm' class='copy-btn copy-btn-blue' data-text='" + html.escape(utm_preview, quote=True) + "' onclick='copyToClipboard(this)'>📋 Копировать</button>" if utm_preview else "<div class='copy-btn copy-btn-disabled'>📋 Копировать</div>"}
+            {"<button id='btnUtm' class='copy-btn copy-btn-blue' onclick='copyToClipboard(`" + utm_preview + "`, `btnUtm`)'>📋 Копировать</button>" if utm_preview else "<div class='copy-btn copy-btn-disabled'>📋 Копировать</div>"}
         </div>
     </div>
 </div>
