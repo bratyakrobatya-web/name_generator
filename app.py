@@ -369,35 +369,6 @@ with col2:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #2E7D32; margin-bottom: 5px;">8. Цель</p>', unsafe_allow_html=True)
     goal = select_with_add("цель", "Цель", select_key="goal", disabled=step8_disabled)
 
-# Кнопка сохранения нейминга в историю
-if st.session_state.campaign_name:
-    col_save, col_copy_name = st.columns([3, 1])
-    with col_save:
-        if st.button("💾 Сохранить нейминг в историю", type="secondary", use_container_width=True):
-            st.session_state.history.append({
-                'datetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'type': 'Нейминг',
-                'value': st.session_state.campaign_name
-            })
-            st.toast("Сохранено в историю!", icon="✅")
-    with col_copy_name:
-        escaped_name = st.session_state.campaign_name.replace("'", "\\'")
-        copy_js = f"""
-        <button onclick="navigator.clipboard.writeText('{escaped_name}').then(function() {{
-            alert('Скопировано!');
-        }});" style="
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            width: 100%;
-        ">📋 Копировать</button>
-        """
-        st.markdown(copy_js, unsafe_allow_html=True)
-
 st.divider()
 
 # ============================================================
@@ -442,20 +413,20 @@ with utm_cols[0]:
     utm_medium = select_with_add("канал", "utm_medium", select_key="utm_medium_select", disabled=utm_medium_disabled)
 
 with utm_cols[1]:
-    # utm_campaign - автозаполнение, активен после utm_medium
+    # utm_campaign - автозаполнение, всегда активен после utm_medium (не блокирует другие)
     utm_campaign_disabled = not bool(utm_medium)
     if utm_campaign_disabled:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">utm_campaign <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
     else:
-        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #6B4C9A; margin-bottom: 5px;">utm_campaign</p>', unsafe_allow_html=True)
+        st.markdown('<p style="font-size: 18px; font-weight: 600; color: #6B4C9A; margin-bottom: 5px;">utm_campaign <span style="font-size: 12px; color: #888;">(авто)</span></p>', unsafe_allow_html=True)
     utm_campaign = st.text_input("Кампания", 
                                  value=st.session_state.campaign_name,
                                  key="utm_campaign",
                                  help="Автоматически заполняется из нейминга выше",
                                  disabled=utm_campaign_disabled)
     
-    # utm_content - активен после utm_campaign
-    utm_content_disabled = not bool(utm_campaign)
+    # utm_content - активен после utm_medium (не зависит от utm_campaign)
+    utm_content_disabled = not bool(utm_medium)
     if utm_content_disabled:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">utm_content <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
     else:
@@ -463,84 +434,21 @@ with utm_cols[1]:
     utm_content = select_with_add("контент", "utm_content", select_key="utm_content_select", disabled=utm_content_disabled)
 
 with utm_cols[2]:
-    # utm_term - активен после utm_content
-    utm_term_disabled = not bool(utm_content)
+    # utm_term - активен после utm_medium
+    utm_term_disabled = not bool(utm_medium)
     if utm_term_disabled:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">utm_term <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
     else:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #6B4C9A; margin-bottom: 5px;">utm_term</p>', unsafe_allow_html=True)
     utm_term = select_with_add("ключевое слово", "utm_term", select_key="utm_term_select", disabled=utm_term_disabled)
     
-    # utm_vacancy - активен после utm_term
-    utm_vacancy_disabled = not bool(utm_term)
+    # utm_vacancy - активен после utm_medium
+    utm_vacancy_disabled = not bool(utm_medium)
     if utm_vacancy_disabled:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">utm_vacancy <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
     else:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #6B4C9A; margin-bottom: 5px;">utm_vacancy</p>', unsafe_allow_html=True)
     utm_vacancy = select_with_add("ID вакансии", "utm_vacancy", select_key="utm_vacancy_select", disabled=utm_vacancy_disabled)
-
-# Кнопка генерации UTM ссылки
-if st.button("🔗 GENERATE LINK + UTM", type="primary", use_container_width=True):
-    if not base_link:
-        st.error("⚠️ Введите базовую ссылку!")
-    elif not validate_url(base_link):
-        st.error("⚠️ Введите корректную ссылку (начинается с http:// или https://)")
-    else:
-        # Собираем UTM параметры
-        utm_params = {}
-        if utm_source:
-            utm_params["utm_source"] = utm_source
-        if utm_medium:
-            utm_params["utm_medium"] = utm_medium
-        if utm_campaign:
-            utm_params["utm_campaign"] = utm_campaign
-        if utm_content:
-            utm_params["utm_content"] = utm_content
-        if utm_term:
-            utm_params["utm_term"] = utm_term
-        if utm_vacancy:
-            utm_params["utm_vacancy"] = utm_vacancy
-        
-        # Формируем финальную ссылку
-        if utm_params:
-            # Используем ручную сборку для сохранения специальных символов типа {ad_id}
-            utm_string = "&".join([f"{k}={v}" for k, v in utm_params.items()])
-            separator = "&" if "?" in base_link else "?"
-            st.session_state.final_link = f"{base_link}{separator}{utm_string}"
-        else:
-            st.session_state.final_link = base_link
-        
-        # Добавляем в историю
-        if st.session_state.final_link:
-            st.session_state.history.append({
-                'datetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'type': 'UTM ссылка',
-                'value': st.session_state.final_link
-            })
-
-# Отображение результата
-if st.session_state.final_link:
-    st.success(f"**Готовая ссылка с UTM:**")
-    
-    col_code, col_copy = st.columns([5, 1])
-    with col_code:
-        st.code(st.session_state.final_link, language=None)
-    with col_copy:
-        copy_js_link = f"""
-        <button onclick="navigator.clipboard.writeText('{st.session_state.final_link}').then(function() {{
-            alert('Скопировано!');
-        }});" style="
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            margin-top: 5px;
-        ">📋 Копировать</button>
-        """
-        st.markdown(copy_js_link, unsafe_allow_html=True)
 
 st.divider()
 
@@ -654,8 +562,81 @@ if st.session_state.campaign_name or st.session_state.final_link:
 
 st.divider()
 
+# ============================================================
+# КНОПКИ КОПИРОВАНИЯ (с записью в историю)
+# ============================================================
+
+st.subheader("📋 Копирование результатов")
+st.caption("При копировании результат автоматически сохраняется в историю")
+
+copy_col1, copy_col2 = st.columns(2)
+
+with copy_col1:
+    if preview:
+        if st.button("📋 Копировать нейминг", type="primary", use_container_width=True, key="copy_naming_btn"):
+            # Копируем в буфер через JavaScript
+            st.session_state.history.append({
+                'datetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'type': 'Нейминг',
+                'value': preview
+            })
+            st.toast("Нейминг скопирован и сохранён в историю!", icon="✅")
+            # JavaScript для копирования
+            escaped_preview = preview.replace("'", "\\'").replace('"', '\\"')
+            st.markdown(f'''<script>navigator.clipboard.writeText("{escaped_preview}");</script>''', unsafe_allow_html=True)
+    else:
+        st.button("📋 Копировать нейминг", type="secondary", use_container_width=True, disabled=True, key="copy_naming_btn_disabled")
+
+with copy_col2:
+    # Формируем UTM превью для кнопки
+    current_base_link_btn = st.session_state.get('base_link', '')
+    current_utm_source_btn = st.session_state.get('utm_source_select', '')
+    current_utm_medium_btn = st.session_state.get('utm_medium_select', '')
+    current_utm_campaign_btn = st.session_state.get('utm_campaign', '') or preview
+    current_utm_content_btn = st.session_state.get('utm_content_select', '')
+    current_utm_term_btn = st.session_state.get('utm_term_select', '')
+    current_utm_vacancy_btn = st.session_state.get('utm_vacancy_select', '')
+    
+    utm_parts_btn = []
+    if current_utm_source_btn:
+        utm_parts_btn.append(f"utm_source={current_utm_source_btn}")
+    if current_utm_medium_btn:
+        utm_parts_btn.append(f"utm_medium={current_utm_medium_btn}")
+    if current_utm_campaign_btn:
+        utm_parts_btn.append(f"utm_campaign={current_utm_campaign_btn}")
+    if current_utm_content_btn:
+        utm_parts_btn.append(f"utm_content={current_utm_content_btn}")
+    if current_utm_term_btn:
+        utm_parts_btn.append(f"utm_term={current_utm_term_btn}")
+    if current_utm_vacancy_btn:
+        utm_parts_btn.append(f"utm_vacancy={current_utm_vacancy_btn}")
+    
+    utm_preview_btn = ""
+    if current_base_link_btn and utm_parts_btn:
+        separator = "&" if "?" in current_base_link_btn else "?"
+        utm_preview_btn = f"{current_base_link_btn}{separator}{'&'.join(utm_parts_btn)}"
+    elif current_base_link_btn:
+        utm_preview_btn = current_base_link_btn
+    elif utm_parts_btn:
+        utm_preview_btn = f"?{'&'.join(utm_parts_btn)}"
+    
+    if utm_preview_btn:
+        if st.button("📋 Копировать UTM ссылку", type="primary", use_container_width=True, key="copy_utm_btn"):
+            st.session_state.history.append({
+                'datetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'type': 'UTM ссылка',
+                'value': utm_preview_btn
+            })
+            st.toast("UTM ссылка скопирована и сохранена в историю!", icon="✅")
+            escaped_utm_btn = utm_preview_btn.replace("'", "\\'").replace('"', '\\"')
+            st.markdown(f'''<script>navigator.clipboard.writeText("{escaped_utm_btn}");</script>''', unsafe_allow_html=True)
+    else:
+        st.button("📋 Копировать UTM ссылку", type="secondary", use_container_width=True, disabled=True, key="copy_utm_btn_disabled")
+
+st.divider()
+
 # Отступ внизу страницы чтобы контент не перекрывался фиксированной панелью
-st.markdown("<div style='height: 160px;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height: 180px;'></div>", unsafe_allow_html=True)
 
 # ============================================================
 # ФИКСИРОВАННАЯ ПАНЕЛЬ ВНИЗУ
@@ -706,16 +687,23 @@ utm_color = "#64B5F6" if utm_preview else "#888"
 escaped_naming = preview.replace("'", "\\'").replace('"', '\\"').replace('\n', '') if preview else ""
 escaped_utm = utm_preview.replace("'", "\\'").replace('"', '\\"').replace('\n', '') if utm_preview else ""
 
-# Формируем кнопки копирования
+# Формируем кнопки копирования с фиксированной шириной
+btn_style = "min-width:140px;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:500;border:none;color:#fff;"
+
 copy_btn_naming = ""
 if preview:
-    copy_btn_naming = f'''<button style="background:#4CAF50;color:#fff;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:500;" onclick="navigator.clipboard.writeText('{escaped_naming}');this.innerText='✓ Скопировано';setTimeout(()=>this.innerText='📋 Копировать',1500)">📋 Копировать</button>'''
+    # При копировании добавляем в историю через fetch к Streamlit (workaround - используем sessionStorage)
+    copy_btn_naming = f'''<button style="{btn_style}background:#4CAF50;" onclick="navigator.clipboard.writeText('{escaped_naming}');this.innerText='✓ Скопировано';localStorage.setItem('copy_naming','{escaped_naming}');setTimeout(()=>this.innerText='📋 Копировать',1500)">📋 Копировать</button>'''
+else:
+    copy_btn_naming = f'''<div style="{btn_style}background:#555;min-width:140px;text-align:center;opacity:0.5;">📋 Копировать</div>'''
 
 copy_btn_utm = ""
 if utm_preview:
-    copy_btn_utm = f'''<button style="background:#2196F3;color:#fff;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:500;" onclick="navigator.clipboard.writeText('{escaped_utm}');this.innerText='✓ Скопировано';setTimeout(()=>this.innerText='📋 Копировать',1500)">📋 Копировать</button>'''
+    copy_btn_utm = f'''<button style="{btn_style}background:#2196F3;" onclick="navigator.clipboard.writeText('{escaped_utm}');this.innerText='✓ Скопировано';localStorage.setItem('copy_utm','{escaped_utm}');setTimeout(()=>this.innerText='📋 Копировать',1500)">📋 Копировать</button>'''
+else:
+    copy_btn_utm = f'''<div style="{btn_style}background:#555;min-width:140px;text-align:center;opacity:0.5;">📋 Копировать</div>'''
 
-# Единый HTML блок - увеличенный размер
+# Единый HTML блок - увеличенный размер с выровненными кнопками
 st.markdown(f'''
 <div style="position:fixed;bottom:0;left:0;right:0;background:linear-gradient(135deg,#1a1a2e,#16213e);padding:18px 30px;box-shadow:0 -6px 30px rgba(0,0,0,0.4);z-index:9999;border-top:4px solid {progress_bar_color};">
 <div style="max-width:1600px;margin:0 auto;">
@@ -723,7 +711,7 @@ st.markdown(f'''
 <span style="color:#ccc;font-size:14px;min-width:80px;font-weight:600;">Нейминг:</span>
 <code style="background:#2d2d44;color:{naming_color};padding:12px 18px;border-radius:6px;font-size:16px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace;">{preview_display}</code>
 {copy_btn_naming}
-<div style="display:flex;align-items:center;gap:10px;margin-left:10px;">
+<div style="display:flex;align-items:center;gap:10px;min-width:200px;">
 <div style="width:150px;background:#333;border-radius:10px;height:10px;overflow:hidden;">
 <div style="width:{progress_percent}%;background:{progress_bar_color};height:100%;"></div>
 </div>
@@ -734,6 +722,7 @@ st.markdown(f'''
 <span style="color:#ccc;font-size:14px;min-width:80px;font-weight:600;">UTM:</span>
 <code style="background:#2d2d44;color:{utm_color};padding:12px 18px;border-radius:6px;font-size:16px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace;">{utm_display}</code>
 {copy_btn_utm}
+<div style="min-width:200px;"></div>
 </div>
 </div>
 </div>
