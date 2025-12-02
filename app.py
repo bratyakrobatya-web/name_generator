@@ -1,10 +1,8 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import pandas as pd
 from urllib.parse import urlencode
 from datetime import datetime
 import re
-import html
 
 # ============================================================
 # НАСТРОЙКА СТРАНИЦЫ (должна быть первой командой Streamlit)
@@ -106,19 +104,6 @@ def validate_url(url):
         r'(?::\d+)?'  # порт
         r'(?:/?|[/?]\S+)$', re.IGNORECASE)
     return bool(pattern.match(url))
-
-def escape_js_string(s):
-    """Экранирует строку для безопасного использования в JavaScript"""
-    if not s:
-        return ""
-    # Экранируем обратные слеши (должно быть первым)
-    s = s.replace('\\', '\\\\')
-    # Экранируем одинарные кавычки
-    s = s.replace("'", "\\'")
-    # Экранируем переносы строк
-    s = s.replace('\n', '\\n')
-    s = s.replace('\r', '\\r')
-    return s
 
 def is_field_filled(value):
     """Проверяет, заполнено ли поле (не пустое и не 'none')"""
@@ -485,15 +470,11 @@ with utm_cols[2]:
 
 st.divider()
 
-# Отступ внизу страницы чтобы контент не перекрывался фиксированной панелью
-st.markdown("<div style='height: 160px;'></div>", unsafe_allow_html=True)
-
 # ============================================================
-# ФИКСИРОВАННАЯ ПАНЕЛЬ ВНИЗУ
+# РЕЗУЛЬТАТЫ ГЕНЕРАЦИИ
 # ============================================================
 
-preview_display = html.escape(preview) if preview else "Заполните поля выше..."
-naming_color = "#00ff88" if preview else "#888"
+st.header("📋 Результаты")
 
 # Формируем превью UTM ссылки
 current_base_link = st.session_state.get('base_link', '')
@@ -506,17 +487,17 @@ current_utm_vacancy = st.session_state.get('utm_vacancy_select', '')
 
 # Собираем UTM строку для превью
 utm_parts = []
-if current_utm_source:
+if current_utm_source and current_utm_source != "none":
     utm_parts.append(f"utm_source={current_utm_source}")
-if current_utm_medium:
+if current_utm_medium and current_utm_medium != "none":
     utm_parts.append(f"utm_medium={current_utm_medium}")
 if current_utm_campaign:
     utm_parts.append(f"utm_campaign={current_utm_campaign}")
-if current_utm_content:
+if current_utm_content and current_utm_content != "none":
     utm_parts.append(f"utm_content={current_utm_content}")
-if current_utm_term:
+if current_utm_term and current_utm_term != "none":
     utm_parts.append(f"utm_term={current_utm_term}")
-if current_utm_vacancy:
+if current_utm_vacancy and current_utm_vacancy != "none":
     utm_parts.append(f"utm_vacancy={current_utm_vacancy}")
 
 utm_preview = ""
@@ -528,212 +509,21 @@ elif current_base_link:
 elif utm_parts:
     utm_preview = f"?{'&'.join(utm_parts)}"
 
-utm_display = html.escape(utm_preview) if utm_preview else "Введите ссылку и UTM параметры..."
-utm_color = "#64B5F6" if utm_preview else "#888"
+# Показываем результаты
+col_result1, col_result2 = st.columns(2)
 
-# DEBUG: Выводим информацию о том, что будет скопировано
-print("="*50)
-print("DEBUG INFO:")
-print(f"preview = '{preview}'")
-print(f"preview length = {len(preview) if preview else 0}")
-print(f"escaped preview = '{escape_js_string(preview)}'")
-print(f"utm_preview = '{utm_preview}'")
-print(f"utm_preview length = {len(utm_preview) if utm_preview else 0}")
-print(f"escaped utm_preview = '{escape_js_string(utm_preview)}'")
-print("="*50)
+with col_result1:
+    st.subheader("🏷️ Нейминг кампании")
+    if preview:
+        st.code(preview, language=None)
+        st.caption("✨ Нажмите на кнопку копирования справа от кода")
+    else:
+        st.info("Заполните поля нейминга выше для генерации")
 
-# CSS для фиксированной панели
-st.markdown(f'''
-<style>
-.fixed-panel {{
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(135deg, #1a1a2e, #16213e);
-    padding: 18px 30px;
-    box-shadow: 0 -6px 30px rgba(0,0,0,0.4);
-    z-index: 9999;
-    border-top: 4px solid #4CAF50;
-}}
-.panel-inner {{
-    max-width: 1600px;
-    margin: 0 auto;
-}}
-.panel-row {{
-    display: flex;
-    align-items: center;
-    margin-bottom: 12px;
-    gap: 15px;
-}}
-.panel-row:last-child {{
-    margin-bottom: 0;
-}}
-.panel-label {{
-    color: #ccc;
-    font-size: 14px;
-    min-width: 80px;
-    font-weight: 600;
-}}
-.panel-code {{
-    background: #2d2d44;
-    padding: 12px 18px;
-    border-radius: 6px;
-    font-size: 16px;
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-family: monospace;
-}}
-.copy-btn {{
-    min-width: 160px;
-    padding: 14px 28px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: 600;
-    border: none;
-    color: #fff;
-    transition: all 0.2s;
-}}
-.copy-btn:hover {{
-    transform: scale(1.03);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}}
-.copy-btn-green {{
-    background: #4CAF50;
-}}
-.copy-btn-green:hover {{
-    background: #45a049;
-}}
-.copy-btn-blue {{
-    background: #2196F3;
-}}
-.copy-btn-blue:hover {{
-    background: #1976D2;
-}}
-.copy-btn-disabled {{
-    background: #555;
-    opacity: 0.5;
-    cursor: not-allowed;
-}}
-</style>
-
-<div class="fixed-panel">
-    <div class="panel-inner">
-        <div class="panel-row">
-            <span class="panel-label">Нейминг:</span>
-            <code class="panel-code" style="color:{naming_color};">{preview_display}</code>
-            {"<button id='btnNaming' class='copy-btn copy-btn-green' onclick=\"copyToClipboard('" + escape_js_string(preview) + "', 'btnNaming')\">Копировать</button>" if preview else "<div class='copy-btn copy-btn-disabled'>Копировать</div>"}
-        </div>
-        <div class="panel-row">
-            <span class="panel-label">UTM:</span>
-            <code class="panel-code" style="color:{utm_color};">{utm_display}</code>
-            {"<button id='btnUtm' class='copy-btn copy-btn-blue' onclick=\"copyToClipboard('" + escape_js_string(utm_preview) + "', 'btnUtm')\">Копировать</button>" if utm_preview else "<div class='copy-btn copy-btn-disabled'>Копировать</div>"}
-        </div>
-    </div>
-</div>
-''', unsafe_allow_html=True)
-
-# JavaScript для копирования через components (работает в отличие от script в markdown)
-components.html(f'''
-<script>
-// Определяем функции в глобальной области видимости parent window
-(function() {{
-    console.log('=== Initializing copy functions ===');
-
-    // Получаем parent window (из iframe в main page)
-    const parentWindow = window.parent;
-
-    // Функция копирования
-    parentWindow.copyToClipboard = function(text, buttonId) {{
-        console.log('=== DEBUG: copyToClipboard called ===');
-        console.log('Text to copy:', text);
-        console.log('Text length:', text ? text.length : 0);
-        console.log('Button ID:', buttonId);
-        console.log('navigator.clipboard available:', !!navigator.clipboard);
-
-        // Try the modern API first
-        if (navigator.clipboard && navigator.clipboard.writeText) {{
-            console.log('Trying modern Clipboard API...');
-            navigator.clipboard.writeText(text).then(function() {{
-                console.log('SUCCESS: Modern Clipboard API worked!');
-                parentWindow.showSuccess(buttonId);
-            }}).catch(function(err) {{
-                console.error('ERROR: Clipboard API failed:', err);
-                console.log('Trying fallback method...');
-                parentWindow.fallbackCopy(text, buttonId);
-            }});
-        }} else {{
-            console.log('Modern Clipboard API not available, using fallback...');
-            parentWindow.fallbackCopy(text, buttonId);
-        }}
-    }};
-
-    // Fallback метод копирования
-    parentWindow.fallbackCopy = function(text, buttonId) {{
-        console.log('=== DEBUG: fallbackCopy called ===');
-        console.log('Creating textarea element...');
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-
-        // Ensure it's part of the DOM and selectable, but not visible
-        textArea.style.position = "fixed";
-        textArea.style.left = "0";
-        textArea.style.top = "0";
-        textArea.style.opacity = "0";
-        textArea.style.pointerEvents = "none";
-
-        console.log('Appending textarea to document body...');
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        console.log('Textarea focused and selected');
-
-        try {{
-            console.log('Executing copy command...');
-            const successful = document.execCommand('copy');
-            console.log('execCommand result:', successful);
-            if (successful) {{
-                console.log('SUCCESS: Fallback copy worked!');
-                parentWindow.showSuccess(buttonId);
-            }} else {{
-                console.error('ERROR: Fallback copy failed - execCommand returned false');
-            }}
-        }} catch (err) {{
-            console.error('ERROR: Fallback copy exception:', err);
-        }} finally {{
-            console.log('Removing textarea from body');
-            document.body.removeChild(textArea);
-        }}
-    }};
-
-    // Функция показа успешного копирования
-    parentWindow.showSuccess = function(buttonId) {{
-        console.log('=== DEBUG: showSuccess called ===');
-        console.log('Looking for button with ID:', buttonId);
-        const btn = parentWindow.document.getElementById(buttonId);
-        console.log('Button element found:', !!btn);
-        if (btn) {{
-            console.log('Setting button text to "✓ Скопировано"');
-            btn.innerText = '✓ Скопировано';
-            setTimeout(function() {{
-                console.log('Resetting button text to "Копировать"');
-                btn.innerText = 'Копировать';
-            }}, 1500);
-        }} else {{
-            console.error('ERROR: Button element not found!');
-        }}
-    }};
-
-    // Test function - call this from console to test if copy works
-    parentWindow.testCopy = function() {{
-        console.log('Testing copy with simple text...');
-        parentWindow.copyToClipboard('test text', 'btnNaming');
-    }};
-
-    console.log('=== Copy functions initialized successfully ===');
-}})();
-</script>
-''', height=0)
+with col_result2:
+    st.subheader("🔗 UTM ссылка")
+    if utm_preview:
+        st.code(utm_preview, language=None)
+        st.caption("✨ Нажмите на кнопку копирования справа от кода")
+    else:
+        st.info("Введите базовую ссылку и UTM параметры выше")
