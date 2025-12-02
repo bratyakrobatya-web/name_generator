@@ -22,16 +22,17 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap');
 
-/* Применяем шрифт ко всем элементам */
-*, *::before, *::after {
-    font-family: 'Golos Text', sans-serif !important;
-}
-
+/* Применяем шрифт ко всем элементам кроме иконок */
 html, body, [class*="css"], .stApp {
     font-family: 'Golos Text', sans-serif !important;
 }
 
-h1, h2, h3, h4, h5, h6, p, span, div, label, button {
+h1, h2, h3, h4, h5, h6, p, span, div, label {
+    font-family: 'Golos Text', sans-serif !important;
+}
+
+/* Кнопки - исключаем иконочные */
+button:not([kind="icon"]):not([data-testid="baseButton-headerNoPadding"]):not([data-testid="collapsedControl"]) {
     font-family: 'Golos Text', sans-serif !important;
 }
 
@@ -45,6 +46,15 @@ h1, h2, h3, h4, h5, h6, p, span, div, label, button {
 
 .stMarkdown, .stMarkdown p {
     font-family: 'Golos Text', sans-serif !important;
+}
+
+/* Иконки сайдбара - системный шрифт */
+[data-testid="collapsedControl"],
+[data-testid="stSidebarCollapseButton"],
+.css-1rs6os,
+button[kind="icon"],
+[data-testid="baseButton-headerNoPadding"] {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
 }
 
 /* Исключение для code блоков */
@@ -741,13 +751,13 @@ utm_color = "#64B5F6" if utm_preview else "#888"
 escaped_naming = preview.replace("'", "\\'").replace('"', '\\"') if preview else ""
 escaped_utm = utm_preview.replace("'", "\\'").replace('"', '\\"') if utm_preview else ""
 
-# Формируем HTML с отступом слева для сайдбара
+# Формируем HTML с адаптивным отступом слева для сайдбара
 fixed_panel_html = f"""
 <style>
 .fixed-bottom-panel {{
     position: fixed;
     bottom: 0;
-    left: 300px;
+    left: 0;
     right: 0;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     padding: 10px 20px;
@@ -755,12 +765,27 @@ fixed_panel_html = f"""
     z-index: 9999;
     border-top: 3px solid {progress_bar_color};
     font-family: 'Golos Text', sans-serif !important;
+    transition: left 0.3s ease;
 }}
 
-/* Для мобильных и когда сайдбар скрыт */
-@media (max-width: 768px) {{
+/* Адаптация под сайдбар Streamlit */
+/* Когда сайдбар открыт - на десктопе */
+@media (min-width: 768px) {{
+    [data-testid="stSidebar"][aria-expanded="true"] ~ .main .fixed-bottom-panel,
     .fixed-bottom-panel {{
-        left: 0;
+        left: 245px;
+    }}
+}}
+
+/* Когда сайдбар скрыт */
+[data-testid="stSidebar"][aria-expanded="false"] ~ .main .fixed-bottom-panel {{
+    left: 0;
+}}
+
+/* Мобильные устройства */
+@media (max-width: 767px) {{
+    .fixed-bottom-panel {{
+        left: 0 !important;
     }}
 }}
 
@@ -857,13 +882,25 @@ fixed_panel_html = f"""
     font-family: 'Golos Text', sans-serif !important;
 }}
 </style>
+"""
 
-<div class="fixed-bottom-panel">
+# Формируем кнопки копирования отдельно
+copy_btn_naming = ""
+if preview:
+    copy_btn_naming = f'<button class="copy-btn" onclick="navigator.clipboard.writeText(\'{escaped_naming}\'); this.innerText=\'✓\'; setTimeout(() => this.innerText=\'📋\', 1500);">📋</button>'
+
+copy_btn_utm = ""
+if utm_preview:
+    copy_btn_utm = f'<button class="copy-btn copy-btn-utm" onclick="navigator.clipboard.writeText(\'{escaped_utm}\'); this.innerText=\'✓\'; setTimeout(() => this.innerText=\'📋\', 1500);">📋</button>'
+
+# HTML панели
+panel_html = f"""
+<div class="fixed-bottom-panel" id="bottomPanel">
     <div class="panel-content">
         <div class="panel-row">
             <span class="panel-label">Нейминг:</span>
             <code class="panel-value panel-value-naming">{preview_display}</code>
-            {"<button class='copy-btn' onclick=\"navigator.clipboard.writeText('" + escaped_naming + "'); this.innerText='✓ Скопировано'; setTimeout(() => this.innerText='📋 Копировать', 1500);\">📋 Копировать</button>" if preview else ""}
+            {copy_btn_naming}
             <div class="progress-container">
                 <div class="progress-bar-bg">
                     <div class="progress-bar-fill"></div>
@@ -874,10 +911,55 @@ fixed_panel_html = f"""
         <div class="panel-row">
             <span class="panel-label">UTM:</span>
             <code class="panel-value panel-value-utm">{utm_display}</code>
-            {"<button class='copy-btn copy-btn-utm' onclick=\"navigator.clipboard.writeText('" + escaped_utm + "'); this.innerText='✓ Скопировано'; setTimeout(() => this.innerText='📋 Копировать', 1500);\">📋 Копировать</button>" if utm_preview else ""}
+            {copy_btn_utm}
         </div>
     </div>
 </div>
 """
 
-st.markdown(fixed_panel_html, unsafe_allow_html=True)
+# JavaScript для отслеживания сайдбара
+script_html = """
+<script>
+(function() {
+    function updatePanelPosition() {
+        var panel = document.getElementById('bottomPanel');
+        var sidebar = document.querySelector('[data-testid="stSidebar"]');
+        
+        if (panel && sidebar) {
+            var isExpanded = sidebar.getAttribute('aria-expanded') === 'true';
+            var sidebarWidth = isExpanded ? sidebar.offsetWidth : 0;
+            
+            if (window.innerWidth >= 768) {
+                panel.style.left = sidebarWidth + 'px';
+            } else {
+                panel.style.left = '0px';
+            }
+        }
+    }
+    
+    var observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.attributeName === 'aria-expanded') {
+                updatePanelPosition();
+            }
+        });
+    });
+    
+    function startObserving() {
+        var sidebar = document.querySelector('[data-testid="stSidebar"]');
+        if (sidebar) {
+            observer.observe(sidebar, { attributes: true });
+            updatePanelPosition();
+        } else {
+            setTimeout(startObserving, 100);
+        }
+    }
+    
+    window.addEventListener('resize', updatePanelPosition);
+    startObserving();
+})();
+</script>
+"""
+
+# Выводим всё вместе
+st.markdown(fixed_panel_html + panel_html + script_html, unsafe_allow_html=True)
