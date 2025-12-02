@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 from urllib.parse import urlencode
 from datetime import datetime
@@ -258,14 +259,14 @@ def select_with_add(label, list_key, multiselect=False, select_key=None, disable
 
     # Основной селект
     if multiselect:
-        selected = st.multiselect(label, options, key=select_key, disabled=disabled, help=hint)
+        selected = st.multiselect(label, options, key=select_key, disabled=disabled, help=hint, label_visibility="collapsed")
     else:
         # Для строгого нейминга - пустая строка, для вариативного - "none"
         if is_strict:
             prefix_options = [""]
         else:
             prefix_options = ["none"]
-        selected = st.selectbox(label, prefix_options + options, key=select_key, disabled=disabled, help=hint)
+        selected = st.selectbox(label, prefix_options + options, key=select_key, disabled=disabled, help=hint, label_visibility="collapsed")
     
     # Поле для добавления нового значения (всегда активно)
     col_input, col_btn = st.columns([3, 1])
@@ -580,32 +581,6 @@ st.markdown(f'''
 }}
 </style>
 
-<script>
-function selectText(elementId) {{
-    var element = document.getElementById(elementId);
-    if (!element) return;
-
-    // Добавляем визуальный эффект
-    element.classList.add('active');
-    setTimeout(function() {{
-        element.classList.remove('active');
-    }}, 300);
-
-    // Выделяем текст
-    if (window.getSelection && document.createRange) {{
-        var range = document.createRange();
-        range.selectNodeContents(element);
-        var selection = window.getSelection();
-        selection.removeAllRanges();
-        selection.addRange(range);
-    }} else if (document.body.createTextRange) {{
-        var range = document.body.createTextRange();
-        range.moveToElementText(element);
-        range.select();
-    }}
-}}
-</script>
-
 <div class="fixed-panel">
     <div class="panel-inner">
         <div class="panel-row">
@@ -621,3 +596,50 @@ function selectText(elementId) {{
     </div>
 </div>
 ''', unsafe_allow_html=True)
+
+# JavaScript для выделения текста через components (работает в отличие от script в markdown)
+components.html('''
+<script>
+(function() {
+    console.log('=== Initializing text selection ===');
+
+    // Получаем parent window
+    const parentWindow = window.parent;
+
+    // Функция выделения текста
+    parentWindow.selectText = function(elementId) {
+        console.log('selectText called for:', elementId);
+        const element = parentWindow.document.getElementById(elementId);
+        if (!element) {
+            console.error('Element not found:', elementId);
+            return;
+        }
+
+        console.log('Element found, selecting text...');
+
+        // Добавляем визуальный эффект
+        element.classList.add('active');
+        setTimeout(function() {
+            element.classList.remove('active');
+        }, 300);
+
+        // Выделяем текст
+        if (parentWindow.getSelection && parentWindow.document.createRange) {
+            const range = parentWindow.document.createRange();
+            range.selectNodeContents(element);
+            const selection = parentWindow.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            console.log('Text selected successfully');
+        } else if (parentWindow.document.body.createTextRange) {
+            const range = parentWindow.document.body.createTextRange();
+            range.moveToElementText(element);
+            range.select();
+            console.log('Text selected successfully (IE fallback)');
+        }
+    };
+
+    console.log('=== Text selection initialized ===');
+})();
+</script>
+''', height=0)
