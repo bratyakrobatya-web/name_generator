@@ -452,114 +452,6 @@ with utm_cols[2]:
 
 st.divider()
 
-# ============================================================
-# ИСТОРИЯ ГЕНЕРАЦИЙ
-# ============================================================
-
-st.header("📜 История генераций")
-
-if st.session_state.history:
-    # Кнопки управления историей
-    col_export, col_clear_hist = st.columns([1, 1])
-    
-    with col_export:
-        # Формируем текст для экспорта
-        export_text = "История генераций\n" + "=" * 50 + "\n\n"
-        for item in st.session_state.history:
-            export_text += f"[{item['datetime']}] {item['type']}:\n{item['value']}\n\n"
-        
-        st.download_button(
-            label="📥 Скачать историю (.txt)",
-            data=export_text,
-            file_name=f"naming_history_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-            mime="text/plain",
-            use_container_width=True
-        )
-    
-    with col_clear_hist:
-        if st.button("🗑️ Очистить историю", use_container_width=True):
-            st.session_state.history = []
-            st.rerun()
-    
-    # Отображение истории (от новых к старым)
-    for i, item in enumerate(reversed(st.session_state.history)):
-        with st.container():
-            col_info, col_copy_hist = st.columns([5, 1])
-            with col_info:
-                badge_color = "#1E5AA8" if item['type'] == 'Нейминг' else "#6B4C9A"
-                st.markdown(f'''
-                <div style="background-color: #f5f5f5; padding: 10px; border-radius: 5px; margin-bottom: 10px; border-left: 4px solid {badge_color};">
-                    <small style="color: #666;">📅 {item['datetime']} | <span style="color: {badge_color}; font-weight: bold;">{item['type']}</span></small><br>
-                    <code style="font-size: 12px; word-break: break-all;">{item['value']}</code>
-                </div>
-                ''', unsafe_allow_html=True)
-            with col_copy_hist:
-                # Экранируем кавычки в значении для JavaScript
-                escaped_value = item['value'].replace("'", "\\'")
-                copy_hist_js = f"""
-                <button onclick="navigator.clipboard.writeText('{escaped_value}').then(function() {{
-                    alert('Скопировано!');
-                }});" style="
-                    background-color: #757575;
-                    color: white;
-                    border: none;
-                    padding: 5px 10px;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    font-size: 12px;
-                    margin-top: 15px;
-                ">📋</button>
-                """
-                st.markdown(copy_hist_js, unsafe_allow_html=True)
-else:
-    st.info("История пуста. Сгенерируйте нейминг или UTM-ссылку.")
-
-st.divider()
-
-# ============================================================
-# ЭКСПОРТ ТЕКУЩИХ РЕЗУЛЬТАТОВ
-# ============================================================
-
-if st.session_state.campaign_name or st.session_state.final_link:
-    st.header("📤 Экспорт результатов")
-    
-    export_current = ""
-    if st.session_state.campaign_name:
-        export_current += f"Нейминг кампании:\n{st.session_state.campaign_name}\n\n"
-    if st.session_state.final_link:
-        export_current += f"UTM ссылка:\n{st.session_state.final_link}\n"
-    
-    col_exp1, col_exp2 = st.columns(2)
-    
-    with col_exp1:
-        st.download_button(
-            label="📥 Скачать результаты (.txt)",
-            data=export_current,
-            file_name=f"campaign_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-            mime="text/plain",
-            use_container_width=True
-        )
-    
-    with col_exp2:
-        # Копировать оба значения
-        both_values = f"{st.session_state.campaign_name}\n{st.session_state.final_link}".strip()
-        escaped_both = both_values.replace("'", "\\'").replace("\n", "\\n")
-        copy_both_js = f"""
-        <button onclick="navigator.clipboard.writeText('{escaped_both}').then(function() {{
-            alert('Скопировано оба значения!');
-        }});" style="
-            background-color: #1976D2;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            width: 100%;
-        ">📋 Копировать всё</button>
-        """
-        st.markdown(copy_both_js, unsafe_allow_html=True)
-
 # Отступ внизу страницы чтобы контент не перекрывался фиксированной панелью
 st.markdown("<div style='height: 160px;'></div>", unsafe_allow_html=True)
 
@@ -655,18 +547,19 @@ st.markdown('''
     font-family: monospace;
 }
 .copy-btn {
-    min-width: 140px;
-    padding: 10px 20px;
-    border-radius: 6px;
+    min-width: 160px;
+    padding: 14px 28px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 16px;
+    font-weight: 600;
     border: none;
     color: #fff;
     transition: all 0.2s;
 }
 .copy-btn:hover {
-    transform: scale(1.02);
+    transform: scale(1.03);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 .copy-btn-green {
     background: #4CAF50;
@@ -716,43 +609,3 @@ st.markdown(f'''
 </div>
 </div>
 ''', unsafe_allow_html=True)
-
-# Streamlit кнопки для записи в историю (скрытые, но функциональные)
-# Используем контейнер с CSS для скрытия
-st.markdown('''
-<style>
-.history-buttons-container {
-    position: fixed;
-    bottom: 200px;
-    right: 20px;
-    z-index: 10000;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-</style>
-''', unsafe_allow_html=True)
-
-# Кнопки для записи в историю (маленькие, в углу)
-with st.container():
-    hist_col1, hist_col2 = st.columns([1, 1])
-    with hist_col1:
-        if preview:
-            if st.button("💾 Сохранить нейминг", key="save_naming_hist", use_container_width=True):
-                st.session_state.history.append({
-                    'datetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    'type': 'Нейминг',
-                    'value': preview
-                })
-                st.toast("✅ Нейминг сохранён в историю!")
-                st.rerun()
-    with hist_col2:
-        if utm_preview:
-            if st.button("💾 Сохранить UTM", key="save_utm_hist", use_container_width=True):
-                st.session_state.history.append({
-                    'datetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    'type': 'UTM ссылка',
-                    'value': utm_preview
-                })
-                st.toast("✅ UTM сохранена в историю!")
-                st.rerun()
