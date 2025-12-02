@@ -156,18 +156,6 @@ def clear_all():
     st.session_state.campaign_name = ""
     st.session_state.final_link = ""
 
-def escape_for_js(text):
-    """Правильное экранирование для JavaScript"""
-    if not text:
-        return ""
-    # Заменяем специальные символы
-    text = text.replace('\\', '\\\\')  # Обратный слеш
-    text = text.replace("'", "\\'")    # Одинарная кавычка
-    text = text.replace('"', '\\"')    # Двойная кавычка
-    text = text.replace('\n', '\\n')   # Перенос строки
-    text = text.replace('\r', '\\r')   # Возврат каретки
-    return text
-
 # ============================================================
 # STREAMLIT UI
 # ============================================================
@@ -511,14 +499,10 @@ elif utm_parts:
 utm_display = html.escape(utm_preview) if utm_preview else "Введите ссылку и UTM параметры..."
 utm_color = "#64B5F6" if utm_preview else "#888"
 
-# Экранируем для JavaScript правильно
-escaped_naming = escape_for_js(preview)
-escaped_utm = escape_for_js(utm_preview)
-
-# CSS для фиксированной панели
-st.markdown('''
+# CSS для фиксированной панели и JavaScript для копирования
+st.markdown(f'''
 <style>
-.fixed-panel {
+.fixed-panel {{
     position: fixed;
     bottom: 0;
     left: 0;
@@ -528,27 +512,27 @@ st.markdown('''
     box-shadow: 0 -6px 30px rgba(0,0,0,0.4);
     z-index: 9999;
     border-top: 4px solid #4CAF50;
-}
-.panel-inner {
+}}
+.panel-inner {{
     max-width: 1600px;
     margin: 0 auto;
-}
-.panel-row {
+}}
+.panel-row {{
     display: flex;
     align-items: center;
     margin-bottom: 12px;
     gap: 15px;
-}
-.panel-row:last-child {
+}}
+.panel-row:last-child {{
     margin-bottom: 0;
-}
-.panel-label {
+}}
+.panel-label {{
     color: #ccc;
     font-size: 14px;
     min-width: 80px;
     font-weight: 600;
-}
-.panel-code {
+}}
+.panel-code {{
     background: #2d2d44;
     padding: 12px 18px;
     border-radius: 6px;
@@ -558,8 +542,8 @@ st.markdown('''
     text-overflow: ellipsis;
     white-space: nowrap;
     font-family: monospace;
-}
-.copy-btn {
+}}
+.copy-btn {{
     min-width: 160px;
     padding: 14px 28px;
     border-radius: 8px;
@@ -569,93 +553,66 @@ st.markdown('''
     border: none;
     color: #fff;
     transition: all 0.2s;
-}
-.copy-btn:hover {
+}}
+.copy-btn:hover {{
     transform: scale(1.03);
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}
-.copy-btn-green {
+}}
+.copy-btn-green {{
     background: #4CAF50;
-}
-.copy-btn-green:hover {
+}}
+.copy-btn-green:hover {{
     background: #45a049;
-}
-.copy-btn-blue {
+}}
+.copy-btn-blue {{
     background: #2196F3;
-}
-.copy-btn-blue:hover {
+}}
+.copy-btn-blue:hover {{
     background: #1976D2;
-}
-.copy-btn-disabled {
+}}
+.copy-btn-disabled {{
     background: #555;
     opacity: 0.5;
     cursor: not-allowed;
-}
+}}
 </style>
-''', unsafe_allow_html=True)
 
-# Формируем кнопки с data-атрибутами
-if preview:
-    btn_naming = f'''
-    <button class="copy-btn copy-btn-green" data-copy="{escaped_naming}" onclick="
-        var text = this.getAttribute('data-copy');
-        var textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.left = '-9999px';
-        document.body.appendChild(textarea);
-        textarea.select();
-        try {{
-            document.execCommand('copy');
-            this.innerText='✓ Скопировано';
-            var btn = this;
-            setTimeout(function() {{ btn.innerText='📋 Копировать'; }}, 1500);
-        }} catch(err) {{
-            console.error('Ошибка копирования:', err);
-        }} finally {{
-            document.body.removeChild(textarea);
+<script>
+function copyToClipboard(text, buttonId) {{
+    var textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {{
+        document.execCommand('copy');
+        var btn = document.getElementById(buttonId);
+        if (btn) {{
+            btn.innerText = '✓ Скопировано';
+            setTimeout(function() {{
+                btn.innerText = '📋 Копировать';
+            }}, 1500);
         }}
-    ">📋 Копировать</button>'''
-else:
-    btn_naming = '''<div class="copy-btn copy-btn-disabled">📋 Копировать</div>'''
+    }} catch (err) {{
+        console.error('Ошибка копирования:', err);
+    }} finally {{
+        document.body.removeChild(textarea);
+    }}
+}}
+</script>
 
-if utm_preview:
-    btn_utm = f'''
-    <button class="copy-btn copy-btn-blue" data-copy="{escaped_utm}" onclick="
-        var text = this.getAttribute('data-copy');
-        var textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.left = '-9999px';
-        document.body.appendChild(textarea);
-        textarea.select();
-        try {{
-            document.execCommand('copy');
-            this.innerText='✓ Скопировано';
-            var btn = this;
-            setTimeout(function() {{ btn.innerText='📋 Копировать'; }}, 1500);
-        }} catch(err) {{
-            console.error('Ошибка копирования:', err);
-        }} finally {{
-            document.body.removeChild(textarea);
-        }}
-    ">📋 Копировать</button>'''
-else:
-    btn_utm = '''<div class="copy-btn copy-btn-disabled">📋 Копировать</div>'''
-
-# HTML панель
-st.markdown(f'''
 <div class="fixed-panel">
     <div class="panel-inner">
         <div class="panel-row">
             <span class="panel-label">Нейминг:</span>
             <code class="panel-code" style="color:{naming_color};">{preview_display}</code>
-            {btn_naming}
+            {"<button id='btnNaming' class='copy-btn copy-btn-green' onclick='copyToClipboard(`" + preview + "`, `btnNaming`)'>📋 Копировать</button>" if preview else "<div class='copy-btn copy-btn-disabled'>📋 Копировать</div>"}
         </div>
         <div class="panel-row">
             <span class="panel-label">UTM:</span>
             <code class="panel-code" style="color:{utm_color};">{utm_display}</code>
-            {btn_utm}
+            {"<button id='btnUtm' class='copy-btn copy-btn-blue' onclick='copyToClipboard(`" + utm_preview + "`, `btnUtm`)'>📋 Копировать</button>" if utm_preview else "<div class='copy-btn copy-btn-disabled'>📋 Копировать</div>"}
         </div>
     </div>
 </div>
