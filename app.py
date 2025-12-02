@@ -594,39 +594,51 @@ st.markdown('''
 </style>
 ''', unsafe_allow_html=True)
 
-# Формируем кнопки с улучшенным методом копирования
+# Формируем кнопки с data-атрибутами
 if preview:
     btn_naming = f'''
-    <button class="copy-btn copy-btn-green" onclick="
-        var text = '{escaped_naming}';
+    <button class="copy-btn copy-btn-green" data-copy="{escaped_naming}" onclick="
+        var text = this.getAttribute('data-copy');
         var textarea = document.createElement('textarea');
         textarea.value = text;
         textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
+        textarea.style.left = '-9999px';
         document.body.appendChild(textarea);
         textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        this.innerText='✓ Скопировано';
-        setTimeout(() => {{this.innerText='📋 Копировать'}}, 1500);
+        try {{
+            document.execCommand('copy');
+            this.innerText='✓ Скопировано';
+            var btn = this;
+            setTimeout(function() {{ btn.innerText='📋 Копировать'; }}, 1500);
+        }} catch(err) {{
+            console.error('Ошибка копирования:', err);
+        }} finally {{
+            document.body.removeChild(textarea);
+        }}
     ">📋 Копировать</button>'''
 else:
     btn_naming = '''<div class="copy-btn copy-btn-disabled">📋 Копировать</div>'''
 
 if utm_preview:
     btn_utm = f'''
-    <button class="copy-btn copy-btn-blue" onclick="
-        var text = '{escaped_utm}';
+    <button class="copy-btn copy-btn-blue" data-copy="{escaped_utm}" onclick="
+        var text = this.getAttribute('data-copy');
         var textarea = document.createElement('textarea');
         textarea.value = text;
         textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
+        textarea.style.left = '-9999px';
         document.body.appendChild(textarea);
         textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        this.innerText='✓ Скопировано';
-        setTimeout(() => {{this.innerText='📋 Копировать'}}, 1500);
+        try {{
+            document.execCommand('copy');
+            this.innerText='✓ Скопировано';
+            var btn = this;
+            setTimeout(function() {{ btn.innerText='📋 Копировать'; }}, 1500);
+        }} catch(err) {{
+            console.error('Ошибка копирования:', err);
+        }} finally {{
+            document.body.removeChild(textarea);
+        }}
     ">📋 Копировать</button>'''
 else:
     btn_utm = '''<div class="copy-btn copy-btn-disabled">📋 Копировать</div>'''
