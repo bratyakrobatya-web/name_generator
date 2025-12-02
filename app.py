@@ -119,6 +119,10 @@ def escape_js_string(s):
     s = s.replace('\r', '\\r')
     return s
 
+def is_field_filled(value):
+    """Проверяет, заполнено ли поле (не пустое и не 'none')"""
+    return bool(value) and value != "none"
+
 def get_progress(product, stream, expense, source, campaign_types, client_geo, targeting, goal):
     """Вычисляет прогресс заполнения"""
     steps = [
@@ -270,9 +274,9 @@ def select_with_add(label, list_key, multiselect=False, select_key=None, disable
     if multiselect:
         selected = st.multiselect(f"Выберите {label.lower()}", options, key=select_key, disabled=disabled, help=hint)
     else:
-        # Для строгого нейминга - без пустой опции, для вариативного - с "none"
+        # Для строгого нейминга - пустая строка, для вариативного - "none"
         if is_strict:
-            prefix_options = []
+            prefix_options = [""]
         else:
             prefix_options = ["none"]
         selected = st.selectbox(f"Выберите {label.lower()}", prefix_options + options, key=select_key, disabled=disabled, help=hint)
@@ -339,7 +343,7 @@ with col1:
     product = select_with_add("продукт", "Продукт", select_key="product", disabled=False)
     
     # 2. Стрим - активен после выбора Продукта
-    step2_disabled = not bool(product)
+    step2_disabled = not is_field_filled(product)
     if step2_disabled:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">2. Стрим <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
     else:
@@ -347,7 +351,7 @@ with col1:
     stream = select_with_add("стрим", "Стрим", select_key="stream", disabled=step2_disabled)
     
     # 3. Статья расхода - активен после выбора Стрима
-    step3_disabled = not bool(stream)
+    step3_disabled = not is_field_filled(stream)
     if step3_disabled:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">3. Статья расхода <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
     else:
@@ -355,7 +359,7 @@ with col1:
     expense = select_with_add("статью расхода", "Статья расхода", select_key="expense", disabled=step3_disabled)
     
     # 4. Источник - активен после выбора Статьи расхода
-    step4_disabled = not bool(expense)
+    step4_disabled = not is_field_filled(expense)
     if step4_disabled:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">4. Источник <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
     else:
@@ -366,7 +370,7 @@ with col2:
     st.subheader("🔄 Вариативный набор нейминга")
     
     # 5. Тип кампании - активен после выбора Источника
-    step5_disabled = not bool(source)
+    step5_disabled = not is_field_filled(source)
     if step5_disabled:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">5. Тип кампании <span style="font-weight: 400; font-size: 14px;">(можно несколько)</span> <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
     else:
@@ -374,7 +378,7 @@ with col2:
     campaign_types = select_with_add("тип(ы) кампании", "Тип кампании", multiselect=True, select_key="campaign_types", disabled=step5_disabled)
     
     # 6. Клиент/гео - активен после выбора Типа кампании
-    step6_disabled = not bool(campaign_types)
+    step6_disabled = not bool(campaign_types)  # campaign_types это список, проверяем его наличие
     if step6_disabled:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">6. Клиент/профроль/гео <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
     else:
@@ -382,7 +386,7 @@ with col2:
     client_geo = select_with_add("клиента/гео", "Клиент/гео", select_key="client_geo", disabled=step6_disabled, is_strict=False)
     
     # 7. Таргетинг - активен после выбора Клиента/гео
-    step7_disabled = not bool(client_geo)
+    step7_disabled = not is_field_filled(client_geo)
     if step7_disabled:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">7. Таргетинг <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
     else:
@@ -390,7 +394,7 @@ with col2:
     targeting = select_with_add("таргетинг", "Таргетинг", select_key="targeting", disabled=step7_disabled, is_strict=False)
     
     # 8. Цель - активен после выбора Таргетинга
-    step8_disabled = not bool(targeting)
+    step8_disabled = not is_field_filled(targeting)
     if step8_disabled:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">8. Цель <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
     else:
@@ -433,7 +437,7 @@ with utm_cols[0]:
     utm_source = select_with_add("источник", "utm_source", select_key="utm_source_select", disabled=not naming_ready, is_strict=False)
 
     # utm_medium - активен после выбора utm_source
-    utm_medium_disabled = not bool(utm_source)
+    utm_medium_disabled = not is_field_filled(utm_source)
     if utm_medium_disabled:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">utm_medium <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
     else:
@@ -442,7 +446,7 @@ with utm_cols[0]:
 
 with utm_cols[1]:
     # utm_campaign - автозаполнение, всегда активен после utm_medium (не блокирует другие)
-    utm_campaign_disabled = not bool(utm_medium)
+    utm_campaign_disabled = not is_field_filled(utm_medium)
     if utm_campaign_disabled:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">utm_campaign <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
     else:
@@ -454,7 +458,7 @@ with utm_cols[1]:
                                  disabled=utm_campaign_disabled)
     
     # utm_content - активен после utm_medium (не зависит от utm_campaign)
-    utm_content_disabled = not bool(utm_medium)
+    utm_content_disabled = not is_field_filled(utm_medium)
     if utm_content_disabled:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">utm_content <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
     else:
@@ -463,7 +467,7 @@ with utm_cols[1]:
 
 with utm_cols[2]:
     # utm_term - активен после utm_medium
-    utm_term_disabled = not bool(utm_medium)
+    utm_term_disabled = not is_field_filled(utm_medium)
     if utm_term_disabled:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">utm_term <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
     else:
@@ -471,7 +475,7 @@ with utm_cols[2]:
     utm_term = select_with_add("ключевое слово", "utm_term", select_key="utm_term_select", disabled=utm_term_disabled, is_strict=False)
 
     # utm_vacancy - активен после utm_medium
-    utm_vacancy_disabled = not bool(utm_medium)
+    utm_vacancy_disabled = not is_field_filled(utm_medium)
     if utm_vacancy_disabled:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">utm_vacancy <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
     else:
@@ -525,6 +529,17 @@ elif utm_parts:
 
 utm_display = html.escape(utm_preview) if utm_preview else "Введите ссылку и UTM параметры..."
 utm_color = "#64B5F6" if utm_preview else "#888"
+
+# DEBUG: Выводим информацию о том, что будет скопировано
+print("="*50)
+print("DEBUG INFO:")
+print(f"preview = '{preview}'")
+print(f"preview length = {len(preview) if preview else 0}")
+print(f"escaped preview = '{escape_js_string(preview)}'")
+print(f"utm_preview = '{utm_preview}'")
+print(f"utm_preview length = {len(utm_preview) if utm_preview else 0}")
+print(f"escaped utm_preview = '{escape_js_string(utm_preview)}'")
+print("="*50)
 
 # CSS для фиксированной панели и JavaScript для копирования
 st.markdown(f'''
@@ -606,56 +621,87 @@ st.markdown(f'''
 
 <script>
 function copyToClipboard(text, buttonId) {{
+    console.log('=== DEBUG: copyToClipboard called ===');
+    console.log('Text to copy:', text);
+    console.log('Text length:', text ? text.length : 0);
+    console.log('Button ID:', buttonId);
+    console.log('navigator.clipboard available:', !!navigator.clipboard);
+
     // Try the modern API first
     if (navigator.clipboard && navigator.clipboard.writeText) {{
+        console.log('Trying modern Clipboard API...');
         navigator.clipboard.writeText(text).then(function() {{
+            console.log('SUCCESS: Modern Clipboard API worked!');
             showSuccess(buttonId);
         }}).catch(function(err) {{
-            console.warn('Clipboard API failed, trying fallback:', err);
+            console.error('ERROR: Clipboard API failed:', err);
+            console.log('Trying fallback method...');
             fallbackCopy(text, buttonId);
         }});
     }} else {{
+        console.log('Modern Clipboard API not available, using fallback...');
         fallbackCopy(text, buttonId);
     }}
 }}
 
 function fallbackCopy(text, buttonId) {{
+    console.log('=== DEBUG: fallbackCopy called ===');
+    console.log('Creating textarea element...');
     var textArea = document.createElement("textarea");
     textArea.value = text;
-    
+
     // Ensure it's part of the DOM and selectable, but not visible
     textArea.style.position = "fixed";
     textArea.style.left = "0";
     textArea.style.top = "0";
     textArea.style.opacity = "0";
     textArea.style.pointerEvents = "none";
-    
+
+    console.log('Appending textarea to body...');
     document.body.appendChild(textArea);
     textArea.focus();
     textArea.select();
+    console.log('Textarea focused and selected');
 
     try {{
+        console.log('Executing copy command...');
         var successful = document.execCommand('copy');
+        console.log('execCommand result:', successful);
         if (successful) {{
+            console.log('SUCCESS: Fallback copy worked!');
             showSuccess(buttonId);
         }} else {{
-            console.error('Fallback copy failed.');
+            console.error('ERROR: Fallback copy failed - execCommand returned false');
         }}
     }} catch (err) {{
-        console.error('Fallback copy error:', err);
+        console.error('ERROR: Fallback copy exception:', err);
     }} finally {{
+        console.log('Removing textarea from body');
         document.body.removeChild(textArea);
     }}
 }}
 
 function showSuccess(buttonId) {{
+    console.log('=== DEBUG: showSuccess called ===');
+    console.log('Looking for button with ID:', buttonId);
     var btn = document.getElementById(buttonId);
+    console.log('Button element found:', !!btn);
     if (btn) {{
+        console.log('Setting button text to "✓ Скопировано"');
         btn.innerText = '✓ Скопировано';
         setTimeout(function() {{
+            console.log('Resetting button text to "Копировать"');
             btn.innerText = 'Копировать';
         }}, 1500);
+    }} else {{
+        console.error('ERROR: Button element not found!');
     }}
+}}
+
+// Test function - call this from console to test if copy works
+function testCopy() {{
+    console.log('Testing copy with simple text...');
+    copyToClipboard('test text', 'btnNaming');
 }}
 </script>
 
