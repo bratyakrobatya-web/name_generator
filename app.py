@@ -176,7 +176,7 @@ with st.expander("ℹ️ Справка по использованию"):
     - Выберите UTM параметры (utm_campaign заполнится автоматически из нейминга)
     - Нажмите **GENERATE LINK + UTM**
     
-    **Функции:** ➕ Добавить своё значение | 📋 Копировать результат | 📜 История генераций | 📥 Скачать в файл
+    **Функции:** ➕ Добавить своё значение | Копировать результат | 📜 История генераций | 📥 Скачать в файл
     
     **Пример нейминга:** `adtech-b2c_lpv_cpa_telegram_mk_astrakhan_users_tresponse`
     
@@ -578,28 +578,47 @@ st.markdown(f'''
 </style>
 
 <script>
-function copyToClipboard(text, buttonId) {{
+function copyToClipboard(text, buttonId) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+            var btn = document.getElementById(buttonId);
+            if (btn) {
+                btn.innerText = '✓ Скопировано';
+                setTimeout(function() {
+                    btn.innerText = 'Копировать';
+                }, 1500);
+            }
+        }).catch(function(err) {
+            console.error('Ошибка копирования (clipboard API):', err);
+            fallbackCopyTextToClipboard(text, buttonId);
+        });
+    } else {
+        fallbackCopyTextToClipboard(text, buttonId);
+    }
+}
+
+function fallbackCopyTextToClipboard(text, buttonId) {
     var textarea = document.createElement('textarea');
     textarea.value = text;
     textarea.style.position = 'fixed';
     textarea.style.left = '-9999px';
     document.body.appendChild(textarea);
     textarea.select();
-    try {{
+    try {
         document.execCommand('copy');
         var btn = document.getElementById(buttonId);
-        if (btn) {{
+        if (btn) {
             btn.innerText = '✓ Скопировано';
-            setTimeout(function() {{
-                btn.innerText = '📋 Копировать';
-            }}, 1500);
-        }}
-    }} catch (err) {{
-        console.error('Ошибка копирования:', err);
-    }} finally {{
+            setTimeout(function() {
+                btn.innerText = 'Копировать';
+            }, 1500);
+        }
+    } catch (err) {
+        console.error('Ошибка копирования (fallback):', err);
+    } finally {
         document.body.removeChild(textarea);
-    }}
-}}
+    }
+}
 </script>
 
 <div class="fixed-panel">
@@ -607,12 +626,12 @@ function copyToClipboard(text, buttonId) {{
         <div class="panel-row">
             <span class="panel-label">Нейминг:</span>
             <code class="panel-code" style="color:{naming_color};">{preview_display}</code>
-            {"<button id='btnNaming' class='copy-btn copy-btn-green' onclick='copyToClipboard(`" + preview + "`, `btnNaming`)'>📋 Копировать</button>" if preview else "<div class='copy-btn copy-btn-disabled'>📋 Копировать</div>"}
+            {"<button id='btnNaming' class='copy-btn copy-btn-green' onclick='copyToClipboard(`" + preview + "`, `btnNaming`)'>Копировать</button>" if preview else "<div class='copy-btn copy-btn-disabled'>Копировать</div>"}
         </div>
         <div class="panel-row">
             <span class="panel-label">UTM:</span>
             <code class="panel-code" style="color:{utm_color};">{utm_display}</code>
-            {"<button id='btnUtm' class='copy-btn copy-btn-blue' onclick='copyToClipboard(`" + utm_preview + "`, `btnUtm`)'>📋 Копировать</button>" if utm_preview else "<div class='copy-btn copy-btn-disabled'>📋 Копировать</div>"}
+            {"<button id='btnUtm' class='copy-btn copy-btn-blue' onclick='copyToClipboard(`" + utm_preview + "`, `btnUtm`)'>Копировать</button>" if utm_preview else "<div class='copy-btn copy-btn-disabled'>Копировать</div>"}
         </div>
     </div>
 </div>
