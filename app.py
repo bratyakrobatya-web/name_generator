@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 from urllib.parse import urlencode
 from datetime import datetime
@@ -541,7 +542,7 @@ print(f"utm_preview length = {len(utm_preview) if utm_preview else 0}")
 print(f"escaped utm_preview = '{escape_js_string(utm_preview)}'")
 print("="*50)
 
-# CSS для фиксированной панели и JavaScript для копирования
+# CSS для фиксированной панели
 st.markdown(f'''
 <style>
 .fixed-panel {{
@@ -619,92 +620,6 @@ st.markdown(f'''
 }}
 </style>
 
-<script>
-function copyToClipboard(text, buttonId) {{
-    console.log('=== DEBUG: copyToClipboard called ===');
-    console.log('Text to copy:', text);
-    console.log('Text length:', text ? text.length : 0);
-    console.log('Button ID:', buttonId);
-    console.log('navigator.clipboard available:', !!navigator.clipboard);
-
-    // Try the modern API first
-    if (navigator.clipboard && navigator.clipboard.writeText) {{
-        console.log('Trying modern Clipboard API...');
-        navigator.clipboard.writeText(text).then(function() {{
-            console.log('SUCCESS: Modern Clipboard API worked!');
-            showSuccess(buttonId);
-        }}).catch(function(err) {{
-            console.error('ERROR: Clipboard API failed:', err);
-            console.log('Trying fallback method...');
-            fallbackCopy(text, buttonId);
-        }});
-    }} else {{
-        console.log('Modern Clipboard API not available, using fallback...');
-        fallbackCopy(text, buttonId);
-    }}
-}}
-
-function fallbackCopy(text, buttonId) {{
-    console.log('=== DEBUG: fallbackCopy called ===');
-    console.log('Creating textarea element...');
-    var textArea = document.createElement("textarea");
-    textArea.value = text;
-
-    // Ensure it's part of the DOM and selectable, but not visible
-    textArea.style.position = "fixed";
-    textArea.style.left = "0";
-    textArea.style.top = "0";
-    textArea.style.opacity = "0";
-    textArea.style.pointerEvents = "none";
-
-    console.log('Appending textarea to body...');
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    console.log('Textarea focused and selected');
-
-    try {{
-        console.log('Executing copy command...');
-        var successful = document.execCommand('copy');
-        console.log('execCommand result:', successful);
-        if (successful) {{
-            console.log('SUCCESS: Fallback copy worked!');
-            showSuccess(buttonId);
-        }} else {{
-            console.error('ERROR: Fallback copy failed - execCommand returned false');
-        }}
-    }} catch (err) {{
-        console.error('ERROR: Fallback copy exception:', err);
-    }} finally {{
-        console.log('Removing textarea from body');
-        document.body.removeChild(textArea);
-    }}
-}}
-
-function showSuccess(buttonId) {{
-    console.log('=== DEBUG: showSuccess called ===');
-    console.log('Looking for button with ID:', buttonId);
-    var btn = document.getElementById(buttonId);
-    console.log('Button element found:', !!btn);
-    if (btn) {{
-        console.log('Setting button text to "✓ Скопировано"');
-        btn.innerText = '✓ Скопировано';
-        setTimeout(function() {{
-            console.log('Resetting button text to "Копировать"');
-            btn.innerText = 'Копировать';
-        }}, 1500);
-    }} else {{
-        console.error('ERROR: Button element not found!');
-    }}
-}}
-
-// Test function - call this from console to test if copy works
-function testCopy() {{
-    console.log('Testing copy with simple text...');
-    copyToClipboard('test text', 'btnNaming');
-}}
-</script>
-
 <div class="fixed-panel">
     <div class="panel-inner">
         <div class="panel-row">
@@ -720,3 +635,105 @@ function testCopy() {{
     </div>
 </div>
 ''', unsafe_allow_html=True)
+
+# JavaScript для копирования через components (работает в отличие от script в markdown)
+components.html(f'''
+<script>
+// Определяем функции в глобальной области видимости parent window
+(function() {{
+    console.log('=== Initializing copy functions ===');
+
+    // Получаем parent window (из iframe в main page)
+    const parentWindow = window.parent;
+
+    // Функция копирования
+    parentWindow.copyToClipboard = function(text, buttonId) {{
+        console.log('=== DEBUG: copyToClipboard called ===');
+        console.log('Text to copy:', text);
+        console.log('Text length:', text ? text.length : 0);
+        console.log('Button ID:', buttonId);
+        console.log('navigator.clipboard available:', !!navigator.clipboard);
+
+        // Try the modern API first
+        if (navigator.clipboard && navigator.clipboard.writeText) {{
+            console.log('Trying modern Clipboard API...');
+            navigator.clipboard.writeText(text).then(function() {{
+                console.log('SUCCESS: Modern Clipboard API worked!');
+                parentWindow.showSuccess(buttonId);
+            }}).catch(function(err) {{
+                console.error('ERROR: Clipboard API failed:', err);
+                console.log('Trying fallback method...');
+                parentWindow.fallbackCopy(text, buttonId);
+            }});
+        }} else {{
+            console.log('Modern Clipboard API not available, using fallback...');
+            parentWindow.fallbackCopy(text, buttonId);
+        }}
+    }};
+
+    // Fallback метод копирования
+    parentWindow.fallbackCopy = function(text, buttonId) {{
+        console.log('=== DEBUG: fallbackCopy called ===');
+        console.log('Creating textarea element...');
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+
+        // Ensure it's part of the DOM and selectable, but not visible
+        textArea.style.position = "fixed";
+        textArea.style.left = "0";
+        textArea.style.top = "0";
+        textArea.style.opacity = "0";
+        textArea.style.pointerEvents = "none";
+
+        console.log('Appending textarea to document body...');
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        console.log('Textarea focused and selected');
+
+        try {{
+            console.log('Executing copy command...');
+            const successful = document.execCommand('copy');
+            console.log('execCommand result:', successful);
+            if (successful) {{
+                console.log('SUCCESS: Fallback copy worked!');
+                parentWindow.showSuccess(buttonId);
+            }} else {{
+                console.error('ERROR: Fallback copy failed - execCommand returned false');
+            }}
+        }} catch (err) {{
+            console.error('ERROR: Fallback copy exception:', err);
+        }} finally {{
+            console.log('Removing textarea from body');
+            document.body.removeChild(textArea);
+        }}
+    }};
+
+    // Функция показа успешного копирования
+    parentWindow.showSuccess = function(buttonId) {{
+        console.log('=== DEBUG: showSuccess called ===');
+        console.log('Looking for button with ID:', buttonId);
+        const btn = parentWindow.document.getElementById(buttonId);
+        console.log('Button element found:', !!btn);
+        if (btn) {{
+            console.log('Setting button text to "✓ Скопировано"');
+            btn.innerText = '✓ Скопировано';
+            setTimeout(function() {{
+                console.log('Resetting button text to "Копировать"');
+                btn.innerText = 'Копировать';
+            }}, 1500);
+        }} else {{
+            console.error('ERROR: Button element not found!');
+        }}
+    }};
+
+    // Test function - call this from console to test if copy works
+    parentWindow.testCopy = function() {{
+        console.log('Testing copy with simple text...');
+        parentWindow.copyToClipboard('test text', 'btnNaming');
+    }};
+
+    console.log('=== Copy functions initialized successfully ===');
+}})();
+</script>
+''', height=0)
