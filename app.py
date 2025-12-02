@@ -3,11 +3,10 @@ import pandas as pd
 from urllib.parse import urlencode
 
 # ============================================================
-# КОНФИГУРАЦИЯ ДАННЫХ
+# КОНФИГУРАЦИЯ ДАННЫХ (дефолтные значения)
 # ============================================================
 
-# Строгий набор нейминга (обязательные поля)
-STRICT_NAMING = {
+DEFAULT_STRICT_NAMING = {
     "Продукт": ["adtech-b2b", "adtech-b2c"],
     "Стрим": ["magnitsupergeo", "lpv", "vebinar", "multi", "clickme", "client", "cobrand", 
               "omnikanalnost", "brandlift", "vr", "career", "retargeting", "reactiv", 
@@ -16,8 +15,7 @@ STRICT_NAMING = {
     "Источник": ["yandex", "telegram", "vk", "tgads", "rockettelegram", "gooroo", "vc", "yandexpromopages"],
 }
 
-# Вариативный набор нейминга (можно выбрать несколько в Тип кампании)
-VARIABLE_NAMING = {
+DEFAULT_VARIABLE_NAMING = {
     "Тип кампании": ["cpcepkall", "mk", "inapp", "media", "leadform", "telegram", "feed", 
                      "autofeed", "epkrsya", "cpaepkall", "post", "search", "article", 
                      "resumes", "common", "vacancy", "banner300x600", "banner100x250", 
@@ -39,8 +37,7 @@ VARIABLE_NAMING = {
              "zapolnenyekontaktnihdanih", "impressions"],
 }
 
-# UTM параметры
-UTM_PARAMS = {
+DEFAULT_UTM_PARAMS = {
     "utm_source": ["yandex", "tgads", "clickme", "vk", "gooroo", "tg", "vc", "yandexpromopages"],
     "utm_medium": ["cpc", "cpm", "cpa", "post", "posev", "cpc_yandex_direct"],
     "utm_content": ["ad1", "{ad_id}", "ad2", "t1", "t2", "t3", "v1", "v2", "v3", "i1"],
@@ -61,11 +58,66 @@ st.set_page_config(page_title="Генератор нейминга и UTM", page
 
 st.title("🏷️ Генератор нейминга кампании и UTM")
 
-# Инициализация session_state
+# ============================================================
+# ИНИЦИАЛИЗАЦИЯ SESSION STATE
+# ============================================================
+
 if 'campaign_name' not in st.session_state:
     st.session_state.campaign_name = ""
 if 'final_link' not in st.session_state:
     st.session_state.final_link = ""
+
+# Инициализация кастомных списков (копия дефолтных)
+for key in DEFAULT_STRICT_NAMING:
+    state_key = f"list_{key}"
+    if state_key not in st.session_state:
+        st.session_state[state_key] = DEFAULT_STRICT_NAMING[key].copy()
+
+for key in DEFAULT_VARIABLE_NAMING:
+    state_key = f"list_{key}"
+    if state_key not in st.session_state:
+        st.session_state[state_key] = DEFAULT_VARIABLE_NAMING[key].copy()
+
+for key in DEFAULT_UTM_PARAMS:
+    state_key = f"list_{key}"
+    if state_key not in st.session_state:
+        st.session_state[state_key] = DEFAULT_UTM_PARAMS[key].copy()
+
+# ============================================================
+# ФУНКЦИЯ ДЛЯ СОЗДАНИЯ ПОЛЯ С ВОЗМОЖНОСТЬЮ ДОБАВЛЕНИЯ
+# ============================================================
+
+def select_with_add(label, list_key, multiselect=False, select_key=None):
+    """Создаёт selectbox/multiselect с возможностью добавить своё значение"""
+    
+    options = st.session_state[f"list_{list_key}"]
+    
+    # Основной селект
+    if multiselect:
+        selected = st.multiselect(f"Выберите {label.lower()}", options, key=select_key)
+    else:
+        selected = st.selectbox(f"Выберите {label.lower()}", [""] + options, key=select_key)
+    
+    # Поле для добавления нового значения
+    col_input, col_btn = st.columns([3, 1])
+    with col_input:
+        new_value = st.text_input(
+            "Добавить своё", 
+            key=f"new_{list_key}",
+            placeholder="Введите новое значение...",
+            label_visibility="collapsed"
+        )
+    with col_btn:
+        if st.button("➕", key=f"add_btn_{list_key}", help="Добавить значение в список"):
+            if new_value and new_value.strip():
+                new_val = new_value.strip()
+                if new_val not in st.session_state[f"list_{list_key}"]:
+                    st.session_state[f"list_{list_key}"].append(new_val)
+                    st.rerun()
+                else:
+                    st.toast("Значение уже есть в списке", icon="⚠️")
+    
+    return selected
 
 # ============================================================
 # ЭТАП 1: СОЗДАНИЕ НЕЙМИНГА КАМПАНИИ
@@ -78,36 +130,32 @@ col1, col2 = st.columns(2)
 with col1:
     st.subheader("📌 Строгий набор нейминга")
     
-    with st.expander("Продукт", expanded=True):
-        product = st.selectbox("Выберите продукт", [""] + STRICT_NAMING["Продукт"], key="product")
+    st.markdown("**Продукт**")
+    product = select_with_add("продукт", "Продукт", select_key="product")
     
-    with st.expander("Стрим", expanded=True):
-        stream = st.selectbox("Выберите стрим", [""] + STRICT_NAMING["Стрим"], key="stream")
+    st.markdown("**Стрим**")
+    stream = select_with_add("стрим", "Стрим", select_key="stream")
     
-    with st.expander("Статья расхода", expanded=True):
-        expense = st.selectbox("Выберите статью расхода", [""] + STRICT_NAMING["Статья расхода"], key="expense")
+    st.markdown("**Статья расхода**")
+    expense = select_with_add("статью расхода", "Статья расхода", select_key="expense")
     
-    with st.expander("Источник", expanded=True):
-        source = st.selectbox("Выберите источник", [""] + STRICT_NAMING["Источник"], key="source")
+    st.markdown("**Источник**")
+    source = select_with_add("источник", "Источник", select_key="source")
 
 with col2:
     st.subheader("🔄 Вариативный набор нейминга")
     
-    with st.expander("Тип кампании (можно несколько)", expanded=True):
-        campaign_types = st.multiselect(
-            "Выберите тип(ы) кампании",
-            VARIABLE_NAMING["Тип кампании"],
-            key="campaign_types"
-        )
+    st.markdown("**Тип кампании** (можно несколько)")
+    campaign_types = select_with_add("тип(ы) кампании", "Тип кампании", multiselect=True, select_key="campaign_types")
     
-    with st.expander("Клиент/профроль/гео", expanded=True):
-        client_geo = st.selectbox("Выберите клиента/гео", [""] + VARIABLE_NAMING["Клиент/гео"], key="client_geo")
+    st.markdown("**Клиент/профроль/гео**")
+    client_geo = select_with_add("клиента/гео", "Клиент/гео", select_key="client_geo")
     
-    with st.expander("Таргетинг", expanded=True):
-        targeting = st.selectbox("Выберите таргетинг", [""] + VARIABLE_NAMING["Таргетинг"], key="targeting")
+    st.markdown("**Таргетинг**")
+    targeting = select_with_add("таргетинг", "Таргетинг", select_key="targeting")
     
-    with st.expander("Цель", expanded=True):
-        goal = st.selectbox("Выберите цель", [""] + VARIABLE_NAMING["Цель"], key="goal")
+    st.markdown("**Цель**")
+    goal = select_with_add("цель", "Цель", select_key="goal")
 
 # Кнопка генерации нейминга
 if st.button("🚀 GENERATE NAME", type="primary", use_container_width=True):
@@ -164,29 +212,28 @@ st.subheader("🎯 UTM параметры")
 utm_cols = st.columns(3)
 
 with utm_cols[0]:
-    with st.expander("utm_source", expanded=True):
-        utm_source = st.selectbox("Источник", [""] + UTM_PARAMS["utm_source"], key="utm_source")
+    st.markdown("**utm_source**")
+    utm_source = select_with_add("источник", "utm_source", select_key="utm_source_select")
     
-    with st.expander("utm_medium", expanded=True):
-        utm_medium = st.selectbox("Канал", [""] + UTM_PARAMS["utm_medium"], key="utm_medium")
+    st.markdown("**utm_medium**")
+    utm_medium = select_with_add("канал", "utm_medium", select_key="utm_medium_select")
 
 with utm_cols[1]:
-    with st.expander("utm_campaign", expanded=True):
-        # Автоматически подставляем сгенерированный нейминг
-        utm_campaign = st.text_input("Кампания", 
-                                     value=st.session_state.campaign_name,
-                                     key="utm_campaign",
-                                     help="Автоматически заполняется из нейминга выше")
+    st.markdown("**utm_campaign**")
+    utm_campaign = st.text_input("Кампания", 
+                                 value=st.session_state.campaign_name,
+                                 key="utm_campaign",
+                                 help="Автоматически заполняется из нейминга выше")
     
-    with st.expander("utm_content", expanded=True):
-        utm_content = st.selectbox("Контент", [""] + UTM_PARAMS["utm_content"], key="utm_content")
+    st.markdown("**utm_content**")
+    utm_content = select_with_add("контент", "utm_content", select_key="utm_content_select")
 
 with utm_cols[2]:
-    with st.expander("utm_term", expanded=True):
-        utm_term = st.selectbox("Ключевое слово", [""] + UTM_PARAMS["utm_term"], key="utm_term")
+    st.markdown("**utm_term**")
+    utm_term = select_with_add("ключевое слово", "utm_term", select_key="utm_term_select")
     
-    with st.expander("utm_vacancy", expanded=True):
-        utm_vacancy = st.selectbox("ID вакансии", [""] + UTM_PARAMS["utm_vacancy"], key="utm_vacancy")
+    st.markdown("**utm_vacancy**")
+    utm_vacancy = select_with_add("ID вакансии", "utm_vacancy", select_key="utm_vacancy_select")
 
 # Кнопка генерации UTM ссылки
 if st.button("🔗 GENERATE LINK + UTM", type="primary", use_container_width=True):
