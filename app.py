@@ -229,20 +229,20 @@ current_client_geo = st.session_state.get('client_geo', '')
 current_targeting = st.session_state.get('targeting', '')
 current_goal = st.session_state.get('goal', '')
 
-# Прогресс-бар
+# Вычисляем прогресс и превью
 completed, total = get_progress(
     current_product, current_stream, current_expense, current_source,
     current_campaign_types, current_client_geo, current_targeting, current_goal
 )
-st.progress(completed / total, text=f"Прогресс: {completed} из {total} шагов")
 
-# Превью нейминга в реальном времени
 preview = build_preview(
     current_product, current_stream, current_expense, current_source,
     current_campaign_types, current_client_geo, current_targeting, current_goal
 )
+
+# Автоматически обновляем campaign_name из превью
 if preview:
-    st.markdown(f'<div style="background-color: #E3F2FD; padding: 10px; border-radius: 5px; margin-bottom: 15px;"><b>Превью:</b> <code>{preview}</code></div>', unsafe_allow_html=True)
+    st.session_state.campaign_name = preview
 
 col1, col2 = st.columns(2)
 
@@ -312,53 +312,21 @@ with col2:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #2E7D32; margin-bottom: 5px;">8. Цель</p>', unsafe_allow_html=True)
     goal = select_with_add("цель", "Цель", select_key="goal", disabled=step8_disabled)
 
-# Кнопка генерации нейминга
-if st.button("🚀 GENERATE NAME", type="primary", use_container_width=True):
-    parts = []
-    
-    # Строгий набор
-    if product:
-        parts.append(product)
-    if stream:
-        parts.append(stream)
-    if expense:
-        parts.append(expense)
-    if source:
-        parts.append(source)
-    
-    # Вариативный набор
-    if campaign_types:
-        # Соединяем несколько типов кампании через &
-        parts.append("&".join(campaign_types))
-    if client_geo:
-        parts.append(client_geo)
-    if targeting:
-        parts.append(targeting)
-    if goal:
-        parts.append(goal)
-    
-    st.session_state.campaign_name = "_".join(parts)
-    
-    # Добавляем в историю
-    if st.session_state.campaign_name:
-        st.session_state.history.append({
-            'datetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'type': 'Нейминг',
-            'value': st.session_state.campaign_name
-        })
-
-# Отображение результата нейминга
+# Кнопка сохранения нейминга в историю
 if st.session_state.campaign_name:
-    st.success(f"**Нейминг кампании:**")
-    
-    # Контейнер с кодом и кнопкой копирования
-    col_code, col_copy = st.columns([5, 1])
-    with col_code:
-        st.code(st.session_state.campaign_name, language=None)
-    with col_copy:
-        # JavaScript для копирования в буфер обмена
+    col_save, col_copy_name = st.columns([3, 1])
+    with col_save:
+        if st.button("💾 Сохранить нейминг в историю", type="secondary", use_container_width=True):
+            st.session_state.history.append({
+                'datetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'type': 'Нейминг',
+                'value': st.session_state.campaign_name
+            })
+            st.toast("Сохранено в историю!", icon="✅")
+    with col_copy_name:
+        escaped_name = st.session_state.campaign_name.replace("'", "\\'")
         copy_js = f"""
-        <button onclick="navigator.clipboard.writeText('{st.session_state.campaign_name}').then(function() {{
+        <button onclick="navigator.clipboard.writeText('{escaped_name}').then(function() {{
             alert('Скопировано!');
         }});" style="
             background-color: #4CAF50;
@@ -368,7 +336,7 @@ if st.session_state.campaign_name:
             border-radius: 5px;
             cursor: pointer;
             font-size: 14px;
-            margin-top: 5px;
+            width: 100%;
         ">📋 Копировать</button>
         """
         st.markdown(copy_js, unsafe_allow_html=True)
@@ -640,8 +608,8 @@ with st.expander("ℹ️ Справка по использованию"):
     1. **Этап 1** - Выберите параметры нейминга кампании:
        - Заполняйте поля последовательно (следующее разблокируется после заполнения предыдущего)
        - В поле "Тип кампании" можно выбрать несколько значений (они объединятся через `&`)
-       - Смотрите превью нейминга в реальном времени
-       - Нажмите **GENERATE NAME**
+       - Нейминг генерируется автоматически — смотрите фиксированную панель внизу
+       - Нажмите **Сохранить в историю** чтобы сохранить результат
     
     2. **Этап 2** - Создайте ссылку с UTM:
        - Введите базовую ссылку (должна начинаться с http:// или https://)
@@ -661,3 +629,80 @@ with st.expander("ℹ️ Справка по использованию"):
     ### Примечание для TG Ads:
     *Для отслеживания таргетированного отклика прописываем: utm_medium=cpc_yandex_direct и utm_vacancy={utm_vacancy}*
     """)
+
+# Отступ внизу страницы чтобы контент не перекрывался фиксированной панелью
+st.markdown("<div style='height: 120px;'></div>", unsafe_allow_html=True)
+
+# ============================================================
+# ФИКСИРОВАННАЯ ПАНЕЛЬ ВНИЗУ
+# ============================================================
+
+# Формируем содержимое панели
+progress_percent = int((completed / total) * 100)
+progress_bar_color = "#4CAF50" if completed == total else "#2196F3"
+
+preview_display = preview if preview else "Начните заполнять поля..."
+preview_color = "#333" if preview else "#999"
+
+# Кнопка копирования (если есть что копировать)
+copy_button_html = ""
+if preview:
+    escaped_preview = preview.replace("'", "\\'")
+    copy_button_html = f"""
+    <button onclick="navigator.clipboard.writeText('{escaped_preview}').then(function() {{
+        var btn = this; btn.innerText = '✓'; setTimeout(function(){{ btn.innerText = '📋'; }}, 1000);
+    }});" style="
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        margin-left: 10px;
+    ">📋</button>
+    """
+
+fixed_panel_html = f"""
+<div style="
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    padding: 15px 30px;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+    z-index: 9999;
+    border-top: 3px solid {progress_bar_color};
+">
+    <div style="max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between;">
+        <div style="flex: 1;">
+            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                <span style="color: #aaa; font-size: 12px; margin-right: 10px;">Прогресс:</span>
+                <div style="flex: 1; max-width: 200px; background: #333; border-radius: 10px; height: 8px; overflow: hidden;">
+                    <div style="width: {progress_percent}%; background: {progress_bar_color}; height: 100%; transition: width 0.3s;"></div>
+                </div>
+                <span style="color: #fff; font-size: 12px; margin-left: 10px; font-weight: bold;">{completed}/{total}</span>
+            </div>
+            <div style="display: flex; align-items: center;">
+                <span style="color: #aaa; font-size: 12px; margin-right: 10px;">Нейминг:</span>
+                <code style="
+                    background: #2d2d44;
+                    color: {preview_color if not preview else '#00ff88'};
+                    padding: 8px 15px;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    font-family: 'Courier New', monospace;
+                    max-width: 700px;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                ">{preview_display}</code>
+                {copy_button_html}
+            </div>
+        </div>
+    </div>
+</div>
+"""
+
+st.markdown(fixed_panel_html, unsafe_allow_html=True)
