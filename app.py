@@ -578,47 +578,47 @@ st.markdown(f'''
 </style>
 
 <script>
-function copyToClipboard(text, buttonId) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(function() {
+function copyToClipboard(text, buttonId) {{
+    if (navigator.clipboard && navigator.clipboard.writeText) {{
+        navigator.clipboard.writeText(text).then(function() {{
             var btn = document.getElementById(buttonId);
-            if (btn) {
+            if (btn) {{
                 btn.innerText = '✓ Скопировано';
-                setTimeout(function() {
+                setTimeout(function() {{
                     btn.innerText = 'Копировать';
-                }, 1500);
-            }
-        }).catch(function(err) {
+                }}, 1500);
+            }}
+        }}).catch(function(err) {{
             console.error('Ошибка копирования (clipboard API):', err);
             fallbackCopyTextToClipboard(text, buttonId);
-        });
-    } else {
+        }});
+    }} else {{
         fallbackCopyTextToClipboard(text, buttonId);
-    }
-}
+    }}
+}}
 
-function fallbackCopyTextToClipboard(text, buttonId) {
+function fallbackCopyTextToClipboard(text, buttonId) {{
     var textarea = document.createElement('textarea');
     textarea.value = text;
     textarea.style.position = 'fixed';
     textarea.style.left = '-9999px';
     document.body.appendChild(textarea);
     textarea.select();
-    try {
+    try {{
         document.execCommand('copy');
         var btn = document.getElementById(buttonId);
-        if (btn) {
+        if (btn) {{
             btn.innerText = '✓ Скопировано';
-            setTimeout(function() {
+            setTimeout(function() {{
                 btn.innerText = 'Копировать';
-            }, 1500);
-        }
-    } catch (err) {
+            }}, 1500);
+        }}
+    }} catch (err) {{
         console.error('Ошибка копирования (fallback):', err);
-    } finally {
+    }} finally {{
         document.body.removeChild(textarea);
-    }
-}
+    }}
+}}
 </script>
 
 <div class="fixed-panel">
