@@ -3,14 +3,15 @@ import pandas as pd
 from urllib.parse import urlencode
 from datetime import datetime
 import re
+import html
 
 # ============================================================
 # НАСТРОЙКА СТРАНИЦЫ (должна быть первой командой Streamlit)
 # ============================================================
 
 st.set_page_config(
-    page_title="Генератор нейминга и UTM", 
-    page_icon="🏷️", 
+    page_title="Генератор нейминга и UTM",
+    page_icon="🏷️",
     layout="wide"
 )
 
@@ -48,31 +49,31 @@ code, pre, .stCode {
 
 DEFAULT_STRICT_NAMING = {
     "Продукт": ["adtech-b2b", "adtech-b2c"],
-    "Стрим": ["magnitsupergeo", "lpv", "vebinar", "multi", "clickme", "client", "cobrand", 
-              "omnikanalnost", "brandlift", "vr", "career", "retargeting", "reactiv", 
+    "Стрим": ["magnitsupergeo", "lpv", "vebinar", "multi", "clickme", "client", "cobrand",
+              "omnikanalnost", "brandlift", "vr", "career", "retargeting", "reactiv",
               "adtech", "meetup", "onedayoffer"],
     "Статья расхода": ["vr", "cpa", "nch", "lpv", "career"],
     "Источник": ["yandex", "telegram", "vk", "tgads", "rockettelegram", "gooroo", "vc", "yandexpromopages"],
 }
 
 DEFAULT_VARIABLE_NAMING = {
-    "Тип кампании": ["cpcepkall", "mk", "inapp", "media", "leadform", "telegram", "feed", 
-                     "autofeed", "epkrsya", "cpaepkall", "post", "search", "article", 
-                     "resumes", "common", "vacancy", "banner300x600", "banner100x250", 
+    "Тип кампании": ["cpcepkall", "mk", "inapp", "media", "leadform", "telegram", "feed",
+                     "autofeed", "epkrsya", "cpaepkall", "post", "search", "article",
+                     "resumes", "common", "vacancy", "banner300x600", "banner100x250",
                      "employer", "text", "video", "banner", "image"],
-    "Клиент/гео": ["rostelecomoperatorcallcenter", "astrakhan", "voditel", "b2c", "multigeo", 
-                   "supergeo", "vit", "special", "remote", "common", "efes", "february", 
+    "Клиент/гео": ["rostelecomoperatorcallcenter", "astrakhan", "voditel", "b2c", "multigeo",
+                   "supergeo", "vit", "special", "remote", "common", "efes", "february",
                    "multycallcentre", "multyvoditel", "podrabotka", "5napravleniy", "bezopyta",
                    "vakhta", "obnoviresume", "kaknenado", "statyasovetirezume", "kartavacanse",
-                   "RTK-operatorkc", "RTK-seller", "periodmart", "yandex-storekeeper", 
+                   "RTK-operatorkc", "RTK-seller", "periodmart", "yandex-storekeeper",
                    "vkusnoitochka", "webinarkobrend"],
-    "Таргетинг": ["channel", "users", "bdhh", "msk2km", "joblisting", "bigdata", 
+    "Таргетинг": ["channel", "users", "bdhh", "msk2km", "joblisting", "bigdata",
                   "segment6-12", "segment12-24", "segment24-60", "chatbot", "key-autotarget",
                   "segmenteconomist", "segment-themes-t1", "segment-channel-t1",
                   "segment1224-themes-t1", "segment1224-channel-t1", "segmentcallcentre",
                   "channel-t1", "channel-t2", "channel-t3", "channel-t4", "channel-themes-t1",
                   "segment612-themes-t1", "segment612-channel-t1", "segmenthh", "segment-t1", "segment-t2"],
-    "Цель": ["response", "tresponse", "reg", "regb2c", "install", "reginstall", "leadform", 
+    "Цель": ["response", "tresponse", "reg", "regb2c", "install", "reginstall", "leadform",
              "lead", "response-tresponse", "clickredlk-clicksohranitizmeneniyalk", "cuerresponse",
              "zapolnenyekontaktnihdanih", "impressions"],
 }
@@ -142,9 +143,9 @@ def build_preview(product, stream, expense, source, campaign_types, client_geo, 
 
 def clear_all():
     """Очищает все поля"""
-    keys_to_clear = ['product', 'stream', 'expense', 'source', 'campaign_types', 
+    keys_to_clear = ['product', 'stream', 'expense', 'source', 'campaign_types',
                      'client_geo', 'targeting', 'goal', 'base_link', 'utm_source_select',
-                     'utm_medium_select', 'utm_campaign', 'utm_content_select', 
+                     'utm_medium_select', 'utm_campaign', 'utm_content_select',
                      'utm_term_select', 'utm_vacancy_select']
     for key in keys_to_clear:
         if key in st.session_state:
@@ -154,6 +155,18 @@ def clear_all():
                 st.session_state[key] = ""
     st.session_state.campaign_name = ""
     st.session_state.final_link = ""
+
+def escape_for_js(text):
+    """Правильное экранирование для JavaScript"""
+    if not text:
+        return ""
+    # Заменяем специальные символы
+    text = text.replace('\\', '\\\\')  # Обратный слеш
+    text = text.replace("'", "\\'")    # Одинарная кавычка
+    text = text.replace('"', '\\"')    # Двойная кавычка
+    text = text.replace('\n', '\\n')   # Перенос строки
+    text = text.replace('\r', '\\r')   # Возврат каретки
+    return text
 
 # ============================================================
 # STREAMLIT UI
@@ -253,7 +266,7 @@ def select_with_add(label, list_key, multiselect=False, select_key=None, disable
     col_input, col_btn = st.columns([3, 1])
     with col_input:
         new_value = st.text_input(
-            "Добавить своё", 
+            "Добавить своё",
             key=f"new_{list_key}",
             placeholder="Добавить значение...",
             label_visibility="collapsed"
@@ -378,7 +391,7 @@ st.divider()
 st.header("Этап 2: Создаём ссылку с UTM")
 
 # Поле для ввода базовой ссылки
-base_link = st.text_input("🔗 Введите базовую ссылку", 
+base_link = st.text_input("🔗 Введите базовую ссылку",
                           placeholder="https://expert.hh.ru/webinar/...",
                           key="base_link")
 
@@ -419,7 +432,7 @@ with utm_cols[1]:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #9E9E9E; margin-bottom: 5px;">utm_campaign <span style="font-size: 12px;">🔒</span></p>', unsafe_allow_html=True)
     else:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #6B4C9A; margin-bottom: 5px;">utm_campaign <span style="font-size: 12px; color: #888;">(авто)</span></p>', unsafe_allow_html=True)
-    utm_campaign = st.text_input("Кампания", 
+    utm_campaign = st.text_input("Кампания",
                                  value=st.session_state.campaign_name,
                                  key="utm_campaign",
                                  help="Автоматически заполняется из нейминга выше",
@@ -459,7 +472,7 @@ st.markdown("<div style='height: 160px;'></div>", unsafe_allow_html=True)
 # ФИКСИРОВАННАЯ ПАНЕЛЬ ВНИЗУ
 # ============================================================
 
-preview_display = preview if preview else "Заполните поля выше..."
+preview_display = html.escape(preview) if preview else "Заполните поля выше..."
 naming_color = "#00ff88" if preview else "#888"
 
 # Формируем превью UTM ссылки
@@ -495,12 +508,12 @@ elif current_base_link:
 elif utm_parts:
     utm_preview = f"?{'&'.join(utm_parts)}"
 
-utm_display = utm_preview if utm_preview else "Введите ссылку и UTM параметры..."
+utm_display = html.escape(utm_preview) if utm_preview else "Введите ссылку и UTM параметры..."
 utm_color = "#64B5F6" if utm_preview else "#888"
 
-# Экранируем для JavaScript
-escaped_naming = preview.replace("'", "\\'").replace('"', '\\"').replace('\n', '') if preview else ""
-escaped_utm = utm_preview.replace("'", "\\'").replace('"', '\\"').replace('\n', '') if utm_preview else ""
+# Экранируем для JavaScript правильно
+escaped_naming = escape_for_js(preview)
+escaped_utm = escape_for_js(utm_preview)
 
 # CSS для фиксированной панели
 st.markdown('''
@@ -583,29 +596,29 @@ st.markdown('''
 
 # Формируем кнопки
 if preview:
-    btn_naming = f'''<button class="copy-btn copy-btn-green" onclick="navigator.clipboard.writeText('{escaped_naming}');this.innerText='✓ Скопировано';setTimeout(()=>this.innerText='📋 Копировать',1500)">📋 Копировать</button>'''
+    btn_naming = f'''<button class="copy-btn copy-btn-green" onclick="navigator.clipboard.writeText('{escaped_naming}');this.innerText='✓ Скопировано';setTimeout(()=>{{this.innerText='📋 Копировать'}},1500)">📋 Копировать</button>'''
 else:
     btn_naming = '''<div class="copy-btn copy-btn-disabled">📋 Копировать</div>'''
 
 if utm_preview:
-    btn_utm = f'''<button class="copy-btn copy-btn-blue" onclick="navigator.clipboard.writeText('{escaped_utm}');this.innerText='✓ Скопировано';setTimeout(()=>this.innerText='📋 Копировать',1500)">📋 Копировать</button>'''
+    btn_utm = f'''<button class="copy-btn copy-btn-blue" onclick="navigator.clipboard.writeText('{escaped_utm}');this.innerText='✓ Скопировано';setTimeout(()=>{{this.innerText='📋 Копировать'}},1500)">📋 Копировать</button>'''
 else:
     btn_utm = '''<div class="copy-btn copy-btn-disabled">📋 Копировать</div>'''
 
 # HTML панель
 st.markdown(f'''
 <div class="fixed-panel">
-<div class="panel-inner">
-<div class="panel-row">
-<span class="panel-label">Нейминг:</span>
-<code class="panel-code" style="color:{naming_color};">{preview_display}</code>
-{btn_naming}
-</div>
-<div class="panel-row">
-<span class="panel-label">UTM:</span>
-<code class="panel-code" style="color:{utm_color};">{utm_display}</code>
-{btn_utm}
-</div>
-</div>
+    <div class="panel-inner">
+        <div class="panel-row">
+            <span class="panel-label">Нейминг:</span>
+            <code class="panel-code" style="color:{naming_color};">{preview_display}</code>
+            {btn_naming}
+        </div>
+        <div class="panel-row">
+            <span class="panel-label">UTM:</span>
+            <code class="panel-code" style="color:{utm_color};">{utm_display}</code>
+            {btn_utm}
+        </div>
+    </div>
 </div>
 ''', unsafe_allow_html=True)
