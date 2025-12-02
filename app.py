@@ -1,0 +1,250 @@
+import streamlit as st
+import pandas as pd
+from urllib.parse import urlencode
+
+# ============================================================
+# КОНФИГУРАЦИЯ ДАННЫХ
+# ============================================================
+
+# Строгий набор нейминга (обязательные поля)
+STRICT_NAMING = {
+    "Продукт": ["adtech-b2b", "adtech-b2c"],
+    "Стрим": ["magnitsupergeo", "lpv", "vebinar", "multi", "clickme", "client", "cobrand", 
+              "omnikanalnost", "brandlift", "vr", "career", "retargeting", "reactiv", 
+              "adtech", "meetup", "onedayoffer"],
+    "Статья расхода": ["vr", "cpa", "nch", "lpv", "career"],
+    "Источник": ["yandex", "telegram", "vk", "tgads", "rockettelegram", "gooroo", "vc", "yandexpromopages"],
+}
+
+# Вариативный набор нейминга (можно выбрать несколько в Тип кампании)
+VARIABLE_NAMING = {
+    "Тип кампании": ["cpcepkall", "mk", "inapp", "media", "leadform", "telegram", "feed", 
+                     "autofeed", "epkrsya", "cpaepkall", "post", "search", "article", 
+                     "resumes", "common", "vacancy", "banner300x600", "banner100x250", 
+                     "employer", "text", "video", "banner", "image"],
+    "Клиент/гео": ["rostelecomoperatorcallcenter", "astrakhan", "voditel", "b2c", "multigeo", 
+                   "supergeo", "vit", "special", "remote", "common", "efes", "february", 
+                   "multycallcentre", "multyvoditel", "podrabotka", "5napravleniy", "bezopyta",
+                   "vakhta", "obnoviresume", "kaknenado", "statyasovetirezume", "kartavacanse",
+                   "RTK-operatorkc", "RTK-seller", "periodmart", "yandex-storekeeper", 
+                   "vkusnoitochka", "webinarkobrend"],
+    "Таргетинг": ["channel", "users", "bdhh", "msk2km", "joblisting", "bigdata", 
+                  "segment6-12", "segment12-24", "segment24-60", "chatbot", "key-autotarget",
+                  "segmenteconomist", "segment-themes-t1", "segment-channel-t1",
+                  "segment1224-themes-t1", "segment1224-channel-t1", "segmentcallcentre",
+                  "channel-t1", "channel-t2", "channel-t3", "channel-t4", "channel-themes-t1",
+                  "segment612-themes-t1", "segment612-channel-t1", "segmenthh", "segment-t1", "segment-t2"],
+    "Цель": ["response", "tresponse", "reg", "regb2c", "install", "reginstall", "leadform", 
+             "lead", "response-tresponse", "clickredlk-clicksohranitizmeneniyalk", "cuerresponse",
+             "zapolnenyekontaktnihdanih", "impressions"],
+}
+
+# UTM параметры
+UTM_PARAMS = {
+    "utm_source": ["yandex", "tgads", "clickme", "vk", "gooroo", "tg", "vc", "yandexpromopages"],
+    "utm_medium": ["cpc", "cpm", "cpa", "post", "posev", "cpc_yandex_direct"],
+    "utm_content": ["ad1", "{ad_id}", "ad2", "t1", "t2", "t3", "v1", "v2", "v3", "i1"],
+    "utm_term": ["none", "{keyword}", "kartavacanse", "5obraztsov", "sovetirezume", "kaknenado",
+                 "posadkavacancy", "statyaudalenka", "statya5napravleniy", "obshayabezopyta",
+                 "obshayaposadkavacancy", "posadkaresume", "obshayapodrabotka", "podrabotka",
+                 "vakhta", "remote", "obnoviresume", "multy_callcentre", "seller", "waiter",
+                 "multyvoditel", "statyamyths", "rosteloperatorcc", "bezopyta", "RTK-seller",
+                 "yandex-storekeeper", "msk", "yandexeda-courier"],
+    "utm_vacancy": ["116482958", "114556060", "{utm_vacancy}", "121286221", "33086", "125468351"],
+}
+
+# ============================================================
+# STREAMLIT UI
+# ============================================================
+
+st.set_page_config(page_title="Генератор нейминга и UTM", page_icon="🏷️", layout="wide")
+
+st.title("🏷️ Генератор нейминга кампании и UTM")
+
+# Инициализация session_state
+if 'campaign_name' not in st.session_state:
+    st.session_state.campaign_name = ""
+if 'final_link' not in st.session_state:
+    st.session_state.final_link = ""
+
+# ============================================================
+# ЭТАП 1: СОЗДАНИЕ НЕЙМИНГА КАМПАНИИ
+# ============================================================
+
+st.header("Этап 1: Создаём нейминг кампании")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("📌 Строгий набор нейминга")
+    
+    with st.expander("Продукт", expanded=True):
+        product = st.selectbox("Выберите продукт", [""] + STRICT_NAMING["Продукт"], key="product")
+    
+    with st.expander("Стрим", expanded=True):
+        stream = st.selectbox("Выберите стрим", [""] + STRICT_NAMING["Стрим"], key="stream")
+    
+    with st.expander("Статья расхода", expanded=True):
+        expense = st.selectbox("Выберите статью расхода", [""] + STRICT_NAMING["Статья расхода"], key="expense")
+    
+    with st.expander("Источник", expanded=True):
+        source = st.selectbox("Выберите источник", [""] + STRICT_NAMING["Источник"], key="source")
+
+with col2:
+    st.subheader("🔄 Вариативный набор нейминга")
+    
+    with st.expander("Тип кампании (можно несколько)", expanded=True):
+        campaign_types = st.multiselect(
+            "Выберите тип(ы) кампании",
+            VARIABLE_NAMING["Тип кампании"],
+            key="campaign_types"
+        )
+    
+    with st.expander("Клиент/профроль/гео", expanded=True):
+        client_geo = st.selectbox("Выберите клиента/гео", [""] + VARIABLE_NAMING["Клиент/гео"], key="client_geo")
+    
+    with st.expander("Таргетинг", expanded=True):
+        targeting = st.selectbox("Выберите таргетинг", [""] + VARIABLE_NAMING["Таргетинг"], key="targeting")
+    
+    with st.expander("Цель", expanded=True):
+        goal = st.selectbox("Выберите цель", [""] + VARIABLE_NAMING["Цель"], key="goal")
+
+# Кнопка генерации нейминга
+if st.button("🚀 GENERATE NAME", type="primary", use_container_width=True):
+    parts = []
+    
+    # Строгий набор
+    if product:
+        parts.append(product)
+    if stream:
+        parts.append(stream)
+    if expense:
+        parts.append(expense)
+    if source:
+        parts.append(source)
+    
+    # Вариативный набор
+    if campaign_types:
+        # Соединяем несколько типов кампании через &
+        parts.append("&".join(campaign_types))
+    if client_geo:
+        parts.append(client_geo)
+    if targeting:
+        parts.append(targeting)
+    if goal:
+        parts.append(goal)
+    
+    st.session_state.campaign_name = "_".join(parts)
+
+# Отображение результата нейминга
+if st.session_state.campaign_name:
+    st.success(f"**Нейминг кампании:**")
+    st.code(st.session_state.campaign_name, language=None)
+    
+    # Кнопка копирования
+    st.button("📋 Копировать нейминг", 
+              on_click=lambda: st.write(""),  # Placeholder
+              help="Выделите и скопируйте текст выше")
+
+st.divider()
+
+# ============================================================
+# ЭТАП 2: СОЗДАНИЕ UTM
+# ============================================================
+
+st.header("Этап 2: Создаём ссылку с UTM")
+
+# Поле для ввода базовой ссылки
+base_link = st.text_input("🔗 Введите базовую ссылку", 
+                          placeholder="https://expert.hh.ru/webinar/...",
+                          key="base_link")
+
+st.subheader("🎯 UTM параметры")
+
+utm_cols = st.columns(3)
+
+with utm_cols[0]:
+    with st.expander("utm_source", expanded=True):
+        utm_source = st.selectbox("Источник", [""] + UTM_PARAMS["utm_source"], key="utm_source")
+    
+    with st.expander("utm_medium", expanded=True):
+        utm_medium = st.selectbox("Канал", [""] + UTM_PARAMS["utm_medium"], key="utm_medium")
+
+with utm_cols[1]:
+    with st.expander("utm_campaign", expanded=True):
+        # Автоматически подставляем сгенерированный нейминг
+        utm_campaign = st.text_input("Кампания", 
+                                     value=st.session_state.campaign_name,
+                                     key="utm_campaign",
+                                     help="Автоматически заполняется из нейминга выше")
+    
+    with st.expander("utm_content", expanded=True):
+        utm_content = st.selectbox("Контент", [""] + UTM_PARAMS["utm_content"], key="utm_content")
+
+with utm_cols[2]:
+    with st.expander("utm_term", expanded=True):
+        utm_term = st.selectbox("Ключевое слово", [""] + UTM_PARAMS["utm_term"], key="utm_term")
+    
+    with st.expander("utm_vacancy", expanded=True):
+        utm_vacancy = st.selectbox("ID вакансии", [""] + UTM_PARAMS["utm_vacancy"], key="utm_vacancy")
+
+# Кнопка генерации UTM ссылки
+if st.button("🔗 GENERATE LINK + UTM", type="primary", use_container_width=True):
+    if not base_link:
+        st.error("⚠️ Введите базовую ссылку!")
+    else:
+        # Собираем UTM параметры
+        utm_params = {}
+        if utm_source:
+            utm_params["utm_source"] = utm_source
+        if utm_medium:
+            utm_params["utm_medium"] = utm_medium
+        if utm_campaign:
+            utm_params["utm_campaign"] = utm_campaign
+        if utm_content:
+            utm_params["utm_content"] = utm_content
+        if utm_term:
+            utm_params["utm_term"] = utm_term
+        if utm_vacancy:
+            utm_params["utm_vacancy"] = utm_vacancy
+        
+        # Формируем финальную ссылку
+        if utm_params:
+            # Используем ручную сборку для сохранения специальных символов типа {ad_id}
+            utm_string = "&".join([f"{k}={v}" for k, v in utm_params.items()])
+            separator = "&" if "?" in base_link else "?"
+            st.session_state.final_link = f"{base_link}{separator}{utm_string}"
+        else:
+            st.session_state.final_link = base_link
+
+# Отображение результата
+if st.session_state.final_link:
+    st.success(f"**Готовая ссылка с UTM:**")
+    st.code(st.session_state.final_link, language=None)
+
+st.divider()
+
+# ============================================================
+# ПОДСКАЗКА
+# ============================================================
+
+with st.expander("ℹ️ Справка по использованию"):
+    st.markdown("""
+    ### Как пользоваться:
+    
+    1. **Этап 1** - Выберите параметры нейминга кампании:
+       - Раскройте нужные секции и выберите значения
+       - В поле "Тип кампании" можно выбрать несколько значений (они объединятся через `&`)
+       - Нажмите **GENERATE NAME**
+    
+    2. **Этап 2** - Создайте ссылку с UTM:
+       - Введите базовую ссылку
+       - Выберите UTM параметры (utm_campaign заполнится автоматически)
+       - Нажмите **GENERATE LINK + UTM**
+    
+    ### Пример нейминга:
+    `adtech-b2c_lpv_cpa_telegram_mk_astrakhan_users_tresponse`
+    
+    ### Примечание для TG Ads:
+    *Для отслеживания таргетированного отклика прописываем: utm_medium=cpc_yandex_direct и utm_vacancy={utm_vacancy}*
+    """)
