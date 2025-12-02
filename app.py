@@ -388,28 +388,26 @@ with col2:
     goal = select_with_add("цель", "Цель", select_key="goal", disabled=step8_disabled, is_strict=False)
 
 # ============================================================
-# РЕЗУЛЬТАТ НЕЙМИНГА - ЯРКИЙ БЛОК
+# РЕЗУЛЬТАТ НЕЙМИНГА - ЧЕРНЫЙ ФОН, ЗЕЛЕНЫЕ БУКВЫ
 # ============================================================
 
 if preview:
-    st.markdown("""
+    st.markdown(f"""
     <div style="
-        background: linear-gradient(135deg, #1a472a, #2d5016);
-        border: 3px solid #4CAF50;
-        border-radius: 15px;
-        padding: 25px;
+        background: #000000;
+        border: 2px solid #00ff00;
+        border-radius: 8px;
+        padding: 20px;
         margin: 20px 0;
-        box-shadow: 0 8px 32px rgba(76, 175, 80, 0.4);
-    ">
-        <h2 style="color: #4CAF50; margin: 0 0 15px 0; font-size: 24px;">
-            🎉 НЕЙМИНГ СГЕНЕРИРОВАН!
-        </h2>
-        <p style="color: #aaa; margin-bottom: 10px; font-size: 14px;">
-            Нажмите на иконку копирования справа от кода 👇
-        </p>
+        font-family: 'Courier New', monospace;
+        font-size: 20px;
+        color: #00ff00;
+        cursor: pointer;
+        user-select: all;
+    " onclick="this.select()" title="Кликните для выделения текста">
+        {preview}
     </div>
     """, unsafe_allow_html=True)
-    st.code(preview, language=None)
 else:
     st.info("👉 Заполните все поля выше для генерации нейминга")
 
@@ -530,23 +528,22 @@ elif current_base_link:
     utm_preview = current_base_link
 
 if utm_preview:
-    st.markdown("""
+    st.markdown(f"""
     <div style="
-        background: linear-gradient(135deg, #1a2a47, #162d50);
-        border: 3px solid #2196F3;
-        border-radius: 15px;
-        padding: 25px;
+        background: #000000;
+        border: 2px solid #00ff00;
+        border-radius: 8px;
+        padding: 20px;
         margin: 20px 0;
-        box-shadow: 0 8px 32px rgba(33, 150, 243, 0.4);
-    ">
-        <h2 style="color: #2196F3; margin: 0 0 15px 0; font-size: 24px;">
-            🚀 UTM ССЫЛКА ГОТОВА!
-        </h2>
-        <p style="color: #aaa; margin-bottom: 10px; font-size: 14px;">
-            Нажмите на иконку копирования справа от кода 👇
-        </p>
+        font-family: 'Courier New', monospace;
+        font-size: 20px;
+        color: #00ff00;
+        cursor: pointer;
+        user-select: all;
+        word-break: break-all;
+    " onclick="this.select()" title="Кликните для выделения текста">
+        {utm_preview}
     </div>
     """, unsafe_allow_html=True)
-    st.code(utm_preview, language=None)
 else:
     st.info("👉 Введите базовую ссылку и заполните UTM параметры выше")
