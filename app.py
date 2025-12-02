@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import pandas as pd
 from urllib.parse import urlencode
 from datetime import datetime
@@ -388,6 +387,17 @@ with col2:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #2E7D32; margin-bottom: 5px;">8. Цель</p>', unsafe_allow_html=True)
     goal = select_with_add("цель", "Цель", select_key="goal", disabled=step8_disabled, is_strict=False)
 
+# ============================================================
+# РЕЗУЛЬТАТ НЕЙМИНГА
+# ============================================================
+
+if preview:
+    st.success("✅ Нейминг сгенерирован!")
+    st.code(preview, language=None)
+    st.caption("👆 Нажмите на иконку копирования справа от кода")
+else:
+    st.info("👉 Заполните все поля выше для генерации нейминга")
+
 st.divider()
 
 # ============================================================
@@ -469,13 +479,8 @@ with utm_cols[2]:
         st.markdown('<p style="font-size: 18px; font-weight: 600; color: #6B4C9A; margin-bottom: 5px;">utm_vacancy</p>', unsafe_allow_html=True)
     utm_vacancy = select_with_add("ID вакансии", "utm_vacancy", select_key="utm_vacancy_select", disabled=utm_vacancy_disabled, is_strict=False)
 
-st.divider()
-
-# Отступ внизу страницы чтобы контент не перекрывался фиксированной панелью
-st.markdown("<div style='height: 140px;'></div>", unsafe_allow_html=True)
-
 # ============================================================
-# ФИКСИРОВАННАЯ ПАНЕЛЬ ВНИЗУ С КЛИКАБЕЛЬНЫМ ТЕКСТОМ
+# РЕЗУЛЬТАТ UTM
 # ============================================================
 
 # Формируем превью UTM ссылки
@@ -487,7 +492,7 @@ current_utm_content = st.session_state.get('utm_content_select', '')
 current_utm_term = st.session_state.get('utm_term_select', '')
 current_utm_vacancy = st.session_state.get('utm_vacancy_select', '')
 
-# Собираем UTM строку для превью
+# Собираем UTM строку
 utm_parts = []
 if current_utm_source and current_utm_source != "none":
     utm_parts.append(f"utm_source={current_utm_source}")
@@ -508,138 +513,10 @@ if current_base_link and utm_parts:
     utm_preview = f"{current_base_link}{separator}{'&'.join(utm_parts)}"
 elif current_base_link:
     utm_preview = current_base_link
-elif utm_parts:
-    utm_preview = f"?{'&'.join(utm_parts)}"
 
-import html
-preview_display = html.escape(preview) if preview else "Заполните поля выше..."
-naming_color = "#00ff88" if preview else "#888"
-utm_display = html.escape(utm_preview) if utm_preview else "Введите ссылку и UTM параметры..."
-utm_color = "#64B5F6" if utm_preview else "#888"
-
-# CSS и JavaScript для фиксированной панели с кликабельным текстом
-st.markdown(f'''
-<style>
-.fixed-panel {{
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(135deg, #1a1a2e, #16213e);
-    padding: 18px 30px;
-    box-shadow: 0 -6px 30px rgba(0,0,0,0.4);
-    z-index: 9999;
-    border-top: 4px solid #4CAF50;
-}}
-.panel-inner {{
-    max-width: 1600px;
-    margin: 0 auto;
-}}
-.panel-row {{
-    display: flex;
-    align-items: center;
-    margin-bottom: 12px;
-    gap: 15px;
-}}
-.panel-row:last-child {{
-    margin-bottom: 0;
-}}
-.panel-label {{
-    color: #ccc;
-    font-size: 14px;
-    min-width: 80px;
-    font-weight: 600;
-}}
-.panel-code {{
-    background: #2d2d44;
-    padding: 12px 18px;
-    border-radius: 6px;
-    font-size: 16px;
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-family: monospace;
-    cursor: pointer;
-    transition: all 0.2s;
-    user-select: none;
-}}
-.panel-code:hover {{
-    background: #3d3d54;
-    box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
-}}
-.panel-code.active {{
-    background: #4d4d64;
-    box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
-}}
-.copy-hint {{
-    color: #888;
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}}
-</style>
-
-<div class="fixed-panel">
-    <div class="panel-inner">
-        <div class="panel-row">
-            <span class="panel-label">Нейминг:</span>
-            <code class="panel-code" id="naming-text" style="color:{naming_color};" onclick="selectText('naming-text')" title="Кликните для выделения, затем Ctrl+C">{preview_display}</code>
-            <span class="copy-hint">📋 Клик → Ctrl+C</span>
-        </div>
-        <div class="panel-row">
-            <span class="panel-label">UTM:</span>
-            <code class="panel-code" id="utm-text" style="color:{utm_color};" onclick="selectText('utm-text')" title="Кликните для выделения, затем Ctrl+C">{utm_display}</code>
-            <span class="copy-hint">📋 Клик → Ctrl+C</span>
-        </div>
-    </div>
-</div>
-''', unsafe_allow_html=True)
-
-# JavaScript для выделения текста через components (работает в отличие от script в markdown)
-components.html('''
-<script>
-(function() {
-    console.log('=== Initializing text selection ===');
-
-    // Получаем parent window
-    const parentWindow = window.parent;
-
-    // Функция выделения текста
-    parentWindow.selectText = function(elementId) {
-        console.log('selectText called for:', elementId);
-        const element = parentWindow.document.getElementById(elementId);
-        if (!element) {
-            console.error('Element not found:', elementId);
-            return;
-        }
-
-        console.log('Element found, selecting text...');
-
-        // Добавляем визуальный эффект
-        element.classList.add('active');
-        setTimeout(function() {
-            element.classList.remove('active');
-        }, 300);
-
-        // Выделяем текст
-        if (parentWindow.getSelection && parentWindow.document.createRange) {
-            const range = parentWindow.document.createRange();
-            range.selectNodeContents(element);
-            const selection = parentWindow.getSelection();
-            selection.removeAllRanges();
-            selection.addRange(range);
-            console.log('Text selected successfully');
-        } else if (parentWindow.document.body.createTextRange) {
-            const range = parentWindow.document.body.createTextRange();
-            range.moveToElementText(element);
-            range.select();
-            console.log('Text selected successfully (IE fallback)');
-        }
-    };
-
-    console.log('=== Text selection initialized ===');
-})();
-</script>
-''', height=0)
+if utm_preview:
+    st.success("✅ UTM ссылка сгенерирована!")
+    st.code(utm_preview, language=None)
+    st.caption("👆 Нажмите на иконку копирования справа от кода")
+else:
+    st.info("👉 Введите базовую ссылку и заполните UTM параметры выше")
