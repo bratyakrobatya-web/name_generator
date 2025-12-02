@@ -22,20 +22,34 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap');
 
-html, body, [class*="css"] {
-    font-family: 'Golos Text', sans-serif;
+/* Применяем шрифт ко всем элементам */
+*, *::before, *::after {
+    font-family: 'Golos Text', sans-serif !important;
 }
 
-h1, h2, h3, h4, h5, h6 {
-    font-family: 'Golos Text', sans-serif;
+html, body, [class*="css"], .stApp {
+    font-family: 'Golos Text', sans-serif !important;
 }
 
-.stSelectbox, .stMultiSelect, .stTextInput {
-    font-family: 'Golos Text', sans-serif;
+h1, h2, h3, h4, h5, h6, p, span, div, label, button {
+    font-family: 'Golos Text', sans-serif !important;
 }
 
-code {
-    font-family: 'Courier New', monospace;
+.stSelectbox label, .stMultiSelect label, .stTextInput label {
+    font-family: 'Golos Text', sans-serif !important;
+}
+
+.stSelectbox div, .stMultiSelect div, .stTextInput input {
+    font-family: 'Golos Text', sans-serif !important;
+}
+
+.stMarkdown, .stMarkdown p {
+    font-family: 'Golos Text', sans-serif !important;
+}
+
+/* Исключение для code блоков */
+code, pre, .stCode {
+    font-family: 'Courier New', monospace !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -684,95 +698,183 @@ with st.sidebar:
 
 progress_percent = int((completed / total) * 100)
 progress_bar_color = "#4CAF50" if completed == total else "#2196F3"
-preview_display = preview if preview else "Начните заполнять поля..."
+preview_display = preview if preview else "Заполните поля выше..."
 naming_color = "#00ff88" if preview else "#888"
 
-# Формируем HTML без проблемной кнопки копирования
+# Формируем превью UTM ссылки
+current_base_link = st.session_state.get('base_link', '')
+current_utm_source = st.session_state.get('utm_source_select', '')
+current_utm_medium = st.session_state.get('utm_medium_select', '')
+current_utm_campaign = st.session_state.get('utm_campaign', '') or preview
+current_utm_content = st.session_state.get('utm_content_select', '')
+current_utm_term = st.session_state.get('utm_term_select', '')
+current_utm_vacancy = st.session_state.get('utm_vacancy_select', '')
+
+# Собираем UTM строку для превью
+utm_parts = []
+if current_utm_source:
+    utm_parts.append(f"utm_source={current_utm_source}")
+if current_utm_medium:
+    utm_parts.append(f"utm_medium={current_utm_medium}")
+if current_utm_campaign:
+    utm_parts.append(f"utm_campaign={current_utm_campaign}")
+if current_utm_content:
+    utm_parts.append(f"utm_content={current_utm_content}")
+if current_utm_term:
+    utm_parts.append(f"utm_term={current_utm_term}")
+if current_utm_vacancy:
+    utm_parts.append(f"utm_vacancy={current_utm_vacancy}")
+
+utm_preview = ""
+if current_base_link and utm_parts:
+    separator = "&" if "?" in current_base_link else "?"
+    utm_preview = f"{current_base_link}{separator}{'&'.join(utm_parts)}"
+elif current_base_link:
+    utm_preview = current_base_link
+elif utm_parts:
+    utm_preview = f"?{'&'.join(utm_parts)}"
+
+utm_display = utm_preview if utm_preview else "Введите ссылку и UTM параметры..."
+utm_color = "#64B5F6" if utm_preview else "#888"
+
+# Экранируем для JavaScript
+escaped_naming = preview.replace("'", "\\'").replace('"', '\\"') if preview else ""
+escaped_utm = utm_preview.replace("'", "\\'").replace('"', '\\"') if utm_preview else ""
+
+# Формируем HTML с отступом слева для сайдбара
 fixed_panel_html = f"""
 <style>
 .fixed-bottom-panel {{
     position: fixed;
     bottom: 0;
-    left: 0;
+    left: 300px;
     right: 0;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    padding: 12px 20px;
+    padding: 10px 20px;
     box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
     z-index: 9999;
     border-top: 3px solid {progress_bar_color};
-    font-family: 'Golos Text', sans-serif;
+    font-family: 'Golos Text', sans-serif !important;
 }}
+
+/* Для мобильных и когда сайдбар скрыт */
+@media (max-width: 768px) {{
+    .fixed-bottom-panel {{
+        left: 0;
+    }}
+}}
+
 .panel-content {{
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
 }}
-.progress-row {{
+
+.panel-row {{
     display: flex;
     align-items: center;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
+    gap: 10px;
 }}
-.progress-label {{
+
+.panel-label {{
     color: #aaa;
-    font-size: 12px;
-    margin-right: 10px;
-    min-width: 70px;
+    font-size: 11px;
+    min-width: 65px;
+    font-family: 'Golos Text', sans-serif !important;
 }}
-.progress-bar-bg {{
+
+.panel-value {{
+    background: #2d2d44;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: 'Courier New', monospace !important;
     flex: 1;
-    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: calc(100% - 150px);
+}}
+
+.panel-value-naming {{
+    color: {naming_color};
+}}
+
+.panel-value-utm {{
+    color: {utm_color};
+}}
+
+.copy-btn {{
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'Golos Text', sans-serif !important;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+}}
+
+.copy-btn:hover {{
+    background-color: #45a049;
+}}
+
+.copy-btn-utm {{
+    background-color: #2196F3;
+}}
+
+.copy-btn-utm:hover {{
+    background-color: #1976D2;
+}}
+
+.progress-container {{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}}
+
+.progress-bar-bg {{
+    width: 120px;
     background: #333;
     border-radius: 10px;
-    height: 8px;
+    height: 6px;
     overflow: hidden;
 }}
+
 .progress-bar-fill {{
     width: {progress_percent}%;
     background: {progress_bar_color};
     height: 100%;
     transition: width 0.3s;
 }}
+
 .progress-text {{
     color: #fff;
-    font-size: 12px;
-    margin-left: 10px;
+    font-size: 11px;
     font-weight: bold;
-}}
-.naming-row {{
-    display: flex;
-    align-items: center;
-}}
-.naming-label {{
-    color: #aaa;
-    font-size: 12px;
-    margin-right: 10px;
-    min-width: 70px;
-}}
-.naming-value {{
-    background: #2d2d44;
-    color: {naming_color};
-    padding: 8px 15px;
-    border-radius: 5px;
-    font-size: 14px;
-    font-family: 'Courier New', monospace;
-    max-width: 800px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-family: 'Golos Text', sans-serif !important;
 }}
 </style>
 
 <div class="fixed-bottom-panel">
     <div class="panel-content">
-        <div class="progress-row">
-            <span class="progress-label">Прогресс:</span>
-            <div class="progress-bar-bg">
-                <div class="progress-bar-fill"></div>
+        <div class="panel-row">
+            <span class="panel-label">Нейминг:</span>
+            <code class="panel-value panel-value-naming">{preview_display}</code>
+            {"<button class='copy-btn' onclick=\"navigator.clipboard.writeText('" + escaped_naming + "'); this.innerText='✓ Скопировано'; setTimeout(() => this.innerText='📋 Копировать', 1500);\">📋 Копировать</button>" if preview else ""}
+            <div class="progress-container">
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill"></div>
+                </div>
+                <span class="progress-text">{completed}/{total}</span>
             </div>
-            <span class="progress-text">{completed}/{total}</span>
         </div>
-        <div class="naming-row">
-            <span class="naming-label">Нейминг:</span>
-            <code class="naming-value">{preview_display}</code>
+        <div class="panel-row">
+            <span class="panel-label">UTM:</span>
+            <code class="panel-value panel-value-utm">{utm_display}</code>
+            {"<button class='copy-btn copy-btn-utm' onclick=\"navigator.clipboard.writeText('" + escaped_utm + "'); this.innerText='✓ Скопировано'; setTimeout(() => this.innerText='📋 Копировать', 1500);\">📋 Копировать</button>" if utm_preview else ""}
         </div>
     </div>
 </div>
