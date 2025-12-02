@@ -258,14 +258,14 @@ def select_with_add(label, list_key, multiselect=False, select_key=None, disable
 
     # Основной селект
     if multiselect:
-        selected = st.multiselect(f"Выберите {label.lower()}", options, key=select_key, disabled=disabled, help=hint)
+        selected = st.multiselect(label, options, key=select_key, disabled=disabled, help=hint)
     else:
         # Для строгого нейминга - пустая строка, для вариативного - "none"
         if is_strict:
             prefix_options = [""]
         else:
             prefix_options = ["none"]
-        selected = st.selectbox(f"Выберите {label.lower()}", prefix_options + options, key=select_key, disabled=disabled, help=hint)
+        selected = st.selectbox(label, prefix_options + options, key=select_key, disabled=disabled, help=hint)
     
     # Поле для добавления нового значения (всегда активно)
     col_input, col_btn = st.columns([3, 1])
@@ -470,11 +470,12 @@ with utm_cols[2]:
 
 st.divider()
 
-# ============================================================
-# РЕЗУЛЬТАТЫ ГЕНЕРАЦИИ
-# ============================================================
+# Отступ внизу страницы чтобы контент не перекрывался фиксированной панелью
+st.markdown("<div style='height: 140px;'></div>", unsafe_allow_html=True)
 
-st.header("📋 Результаты")
+# ============================================================
+# ФИКСИРОВАННАЯ ПАНЕЛЬ ВНИЗУ С КЛИКАБЕЛЬНЫМ ТЕКСТОМ
+# ============================================================
 
 # Формируем превью UTM ссылки
 current_base_link = st.session_state.get('base_link', '')
@@ -509,21 +510,114 @@ elif current_base_link:
 elif utm_parts:
     utm_preview = f"?{'&'.join(utm_parts)}"
 
-# Показываем результаты
-col_result1, col_result2 = st.columns(2)
+import html
+preview_display = html.escape(preview) if preview else "Заполните поля выше..."
+naming_color = "#00ff88" if preview else "#888"
+utm_display = html.escape(utm_preview) if utm_preview else "Введите ссылку и UTM параметры..."
+utm_color = "#64B5F6" if utm_preview else "#888"
 
-with col_result1:
-    st.subheader("🏷️ Нейминг кампании")
-    if preview:
-        st.code(preview, language=None)
-        st.caption("✨ Нажмите на кнопку копирования справа от кода")
-    else:
-        st.info("Заполните поля нейминга выше для генерации")
+# CSS и JavaScript для фиксированной панели с кликабельным текстом
+st.markdown(f'''
+<style>
+.fixed-panel {{
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    padding: 18px 30px;
+    box-shadow: 0 -6px 30px rgba(0,0,0,0.4);
+    z-index: 9999;
+    border-top: 4px solid #4CAF50;
+}}
+.panel-inner {{
+    max-width: 1600px;
+    margin: 0 auto;
+}}
+.panel-row {{
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 15px;
+}}
+.panel-row:last-child {{
+    margin-bottom: 0;
+}}
+.panel-label {{
+    color: #ccc;
+    font-size: 14px;
+    min-width: 80px;
+    font-weight: 600;
+}}
+.panel-code {{
+    background: #2d2d44;
+    padding: 12px 18px;
+    border-radius: 6px;
+    font-size: 16px;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: monospace;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+}}
+.panel-code:hover {{
+    background: #3d3d54;
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+}}
+.panel-code.active {{
+    background: #4d4d64;
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+}}
+.copy-hint {{
+    color: #888;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}}
+</style>
 
-with col_result2:
-    st.subheader("🔗 UTM ссылка")
-    if utm_preview:
-        st.code(utm_preview, language=None)
-        st.caption("✨ Нажмите на кнопку копирования справа от кода")
-    else:
-        st.info("Введите базовую ссылку и UTM параметры выше")
+<script>
+function selectText(elementId) {{
+    var element = document.getElementById(elementId);
+    if (!element) return;
+
+    // Добавляем визуальный эффект
+    element.classList.add('active');
+    setTimeout(function() {{
+        element.classList.remove('active');
+    }}, 300);
+
+    // Выделяем текст
+    if (window.getSelection && document.createRange) {{
+        var range = document.createRange();
+        range.selectNodeContents(element);
+        var selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }} else if (document.body.createTextRange) {{
+        var range = document.body.createTextRange();
+        range.moveToElementText(element);
+        range.select();
+    }}
+}}
+</script>
+
+<div class="fixed-panel">
+    <div class="panel-inner">
+        <div class="panel-row">
+            <span class="panel-label">Нейминг:</span>
+            <code class="panel-code" id="naming-text" style="color:{naming_color};" onclick="selectText('naming-text')" title="Кликните для выделения, затем Ctrl+C">{preview_display}</code>
+            <span class="copy-hint">📋 Клик → Ctrl+C</span>
+        </div>
+        <div class="panel-row">
+            <span class="panel-label">UTM:</span>
+            <code class="panel-code" id="utm-text" style="color:{utm_color};" onclick="selectText('utm-text')" title="Кликните для выделения, затем Ctrl+C">{utm_display}</code>
+            <span class="copy-hint">📋 Клик → Ctrl+C</span>
+        </div>
+    </div>
+</div>
+''', unsafe_allow_html=True)
