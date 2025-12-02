@@ -594,14 +594,40 @@ st.markdown('''
 </style>
 ''', unsafe_allow_html=True)
 
-# Формируем кнопки
+# Формируем кнопки с улучшенным методом копирования
 if preview:
-    btn_naming = f'''<button class="copy-btn copy-btn-green" onclick="navigator.clipboard.writeText('{escaped_naming}');this.innerText='✓ Скопировано';setTimeout(()=>{{this.innerText='📋 Копировать'}},1500)">📋 Копировать</button>'''
+    btn_naming = f'''
+    <button class="copy-btn copy-btn-green" onclick="
+        var text = '{escaped_naming}';
+        var textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        this.innerText='✓ Скопировано';
+        setTimeout(() => {{this.innerText='📋 Копировать'}}, 1500);
+    ">📋 Копировать</button>'''
 else:
     btn_naming = '''<div class="copy-btn copy-btn-disabled">📋 Копировать</div>'''
 
 if utm_preview:
-    btn_utm = f'''<button class="copy-btn copy-btn-blue" onclick="navigator.clipboard.writeText('{escaped_utm}');this.innerText='✓ Скопировано';setTimeout(()=>{{this.innerText='📋 Копировать'}},1500)">📋 Копировать</button>'''
+    btn_utm = f'''
+    <button class="copy-btn copy-btn-blue" onclick="
+        var text = '{escaped_utm}';
+        var textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        this.innerText='✓ Скопировано';
+        setTimeout(() => {{this.innerText='📋 Копировать'}}, 1500);
+    ">📋 Копировать</button>'''
 else:
     btn_utm = '''<div class="copy-btn copy-btn-disabled">📋 Копировать</div>'''
 
