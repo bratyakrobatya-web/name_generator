@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 from urllib.parse import urlencode
+from datetime import datetime
+import re
 
 # ============================================================
 # КОНФИГУРАЦИЯ ДАННЫХ (дефолтные значения)
@@ -51,12 +53,84 @@ DEFAULT_UTM_PARAMS = {
 }
 
 # ============================================================
+# ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+# ============================================================
+
+def validate_url(url):
+    """Проверяет валидность URL"""
+    pattern = re.compile(
+        r'^https?://'  # http:// или https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'  # домен
+        r'localhost|'  # localhost
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # или IP
+        r'(?::\d+)?'  # порт
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    return bool(pattern.match(url))
+
+def get_progress(product, stream, expense, source, campaign_types, client_geo, targeting, goal):
+    """Вычисляет прогресс заполнения"""
+    steps = [
+        bool(product),
+        bool(stream),
+        bool(expense),
+        bool(source),
+        bool(campaign_types),
+        bool(client_geo),
+        bool(targeting),
+        bool(goal)
+    ]
+    return sum(steps), len(steps)
+
+def build_preview(product, stream, expense, source, campaign_types, client_geo, targeting, goal):
+    """Строит превью нейминга в реальном времени"""
+    parts = []
+    if product:
+        parts.append(product)
+    if stream:
+        parts.append(stream)
+    if expense:
+        parts.append(expense)
+    if source:
+        parts.append(source)
+    if campaign_types:
+        parts.append("&".join(campaign_types))
+    if client_geo:
+        parts.append(client_geo)
+    if targeting:
+        parts.append(targeting)
+    if goal:
+        parts.append(goal)
+    return "_".join(parts) if parts else ""
+
+def clear_all():
+    """Очищает все поля"""
+    keys_to_clear = ['product', 'stream', 'expense', 'source', 'campaign_types', 
+                     'client_geo', 'targeting', 'goal', 'base_link', 'utm_source_select',
+                     'utm_medium_select', 'utm_campaign', 'utm_content_select', 
+                     'utm_term_select', 'utm_vacancy_select']
+    for key in keys_to_clear:
+        if key in st.session_state:
+            if key == 'campaign_types':
+                st.session_state[key] = []
+            else:
+                st.session_state[key] = ""
+    st.session_state.campaign_name = ""
+    st.session_state.final_link = ""
+
+# ============================================================
 # STREAMLIT UI
 # ============================================================
 
 st.set_page_config(page_title="Генератор нейминга и UTM", page_icon="🏷️", layout="wide")
 
 st.title("🏷️ Генератор нейминга кампании и UTM")
+
+# Кнопка сброса в правом верхнем углу
+col_title, col_reset = st.columns([5, 1])
+with col_reset:
+    if st.button("🔄 Сбросить всё", type="secondary", use_container_width=True):
+        clear_all()
+        st.rerun()
 
 # ============================================================
 # ИНИЦИАЛИЗАЦИЯ SESSION STATE
@@ -66,6 +140,8 @@ if 'campaign_name' not in st.session_state:
     st.session_state.campaign_name = ""
 if 'final_link' not in st.session_state:
     st.session_state.final_link = ""
+if 'history' not in st.session_state:
+    st.session_state.history = []  # Список словарей: {datetime, type, value}
 
 # Инициализация кастомных списков (копия дефолтных)
 for key in DEFAULT_STRICT_NAMING:
@@ -87,16 +163,34 @@ for key in DEFAULT_UTM_PARAMS:
 # ФУНКЦИЯ ДЛЯ СОЗДАНИЯ ПОЛЯ С ВОЗМОЖНОСТЬЮ ДОБАВЛЕНИЯ
 # ============================================================
 
+# Подсказки для полей
+FIELD_HINTS = {
+    "Продукт": "Основной продукт/направление бизнеса",
+    "Стрим": "Поток или категория кампании",
+    "Статья расхода": "Категория бюджета/расходов",
+    "Источник": "Рекламная платформа/источник трафика",
+    "Тип кампании": "Тип рекламной кампании в системе",
+    "Клиент/гео": "Клиент, профиль или география",
+    "Таргетинг": "Настройки таргетирования аудитории",
+    "Цель": "Целевое действие кампании",
+    "utm_source": "Источник трафика (google, yandex, telegram...)",
+    "utm_medium": "Тип трафика (cpc, cpm, email, social...)",
+    "utm_content": "Идентификатор объявления/креатива",
+    "utm_term": "Ключевое слово или тема",
+    "utm_vacancy": "ID вакансии для отслеживания",
+}
+
 def select_with_add(label, list_key, multiselect=False, select_key=None, disabled=False):
     """Создаёт selectbox/multiselect с возможностью добавить своё значение"""
     
     options = st.session_state[f"list_{list_key}"]
+    hint = FIELD_HINTS.get(list_key, "")
     
     # Основной селект
     if multiselect:
-        selected = st.multiselect(f"Выберите {label.lower()}", options, key=select_key, disabled=disabled)
+        selected = st.multiselect(f"Выберите {label.lower()}", options, key=select_key, disabled=disabled, help=hint)
     else:
-        selected = st.selectbox(f"Выберите {label.lower()}", [""] + options, key=select_key, disabled=disabled)
+        selected = st.selectbox(f"Выберите {label.lower()}", [""] + options, key=select_key, disabled=disabled, help=hint)
     
     # Поле для добавления нового значения (всегда активно)
     col_input, col_btn = st.columns([3, 1])
@@ -124,6 +218,31 @@ def select_with_add(label, list_key, multiselect=False, select_key=None, disable
 # ============================================================
 
 st.header("Этап 1: Создаём нейминг кампании")
+
+# Получаем текущие значения для прогресса и превью
+current_product = st.session_state.get('product', '')
+current_stream = st.session_state.get('stream', '')
+current_expense = st.session_state.get('expense', '')
+current_source = st.session_state.get('source', '')
+current_campaign_types = st.session_state.get('campaign_types', [])
+current_client_geo = st.session_state.get('client_geo', '')
+current_targeting = st.session_state.get('targeting', '')
+current_goal = st.session_state.get('goal', '')
+
+# Прогресс-бар
+completed, total = get_progress(
+    current_product, current_stream, current_expense, current_source,
+    current_campaign_types, current_client_geo, current_targeting, current_goal
+)
+st.progress(completed / total, text=f"Прогресс: {completed} из {total} шагов")
+
+# Превью нейминга в реальном времени
+preview = build_preview(
+    current_product, current_stream, current_expense, current_source,
+    current_campaign_types, current_client_geo, current_targeting, current_goal
+)
+if preview:
+    st.markdown(f'<div style="background-color: #E3F2FD; padding: 10px; border-radius: 5px; margin-bottom: 15px;"><b>Превью:</b> <code>{preview}</code></div>', unsafe_allow_html=True)
 
 col1, col2 = st.columns(2)
 
@@ -219,16 +338,40 @@ if st.button("🚀 GENERATE NAME", type="primary", use_container_width=True):
         parts.append(goal)
     
     st.session_state.campaign_name = "_".join(parts)
+    
+    # Добавляем в историю
+    if st.session_state.campaign_name:
+        st.session_state.history.append({
+            'datetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'type': 'Нейминг',
+            'value': st.session_state.campaign_name
+        })
 
 # Отображение результата нейминга
 if st.session_state.campaign_name:
     st.success(f"**Нейминг кампании:**")
-    st.code(st.session_state.campaign_name, language=None)
     
-    # Кнопка копирования
-    st.button("📋 Копировать нейминг", 
-              on_click=lambda: st.write(""),  # Placeholder
-              help="Выделите и скопируйте текст выше")
+    # Контейнер с кодом и кнопкой копирования
+    col_code, col_copy = st.columns([5, 1])
+    with col_code:
+        st.code(st.session_state.campaign_name, language=None)
+    with col_copy:
+        # JavaScript для копирования в буфер обмена
+        copy_js = f"""
+        <button onclick="navigator.clipboard.writeText('{st.session_state.campaign_name}').then(function() {{
+            alert('Скопировано!');
+        }});" style="
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 5px;
+        ">📋 Копировать</button>
+        """
+        st.markdown(copy_js, unsafe_allow_html=True)
 
 st.divider()
 
@@ -242,6 +385,10 @@ st.header("Этап 2: Создаём ссылку с UTM")
 base_link = st.text_input("🔗 Введите базовую ссылку", 
                           placeholder="https://expert.hh.ru/webinar/...",
                           key="base_link")
+
+# Валидация URL
+if base_link and not validate_url(base_link):
+    st.warning("⚠️ Ссылка должна начинаться с http:// или https://")
 
 # Проверка готовности нейминга для UTM
 naming_ready = bool(st.session_state.campaign_name)
@@ -311,6 +458,8 @@ with utm_cols[2]:
 if st.button("🔗 GENERATE LINK + UTM", type="primary", use_container_width=True):
     if not base_link:
         st.error("⚠️ Введите базовую ссылку!")
+    elif not validate_url(base_link):
+        st.error("⚠️ Введите корректную ссылку (начинается с http:// или https://)")
     else:
         # Собираем UTM параметры
         utm_params = {}
@@ -335,11 +484,148 @@ if st.button("🔗 GENERATE LINK + UTM", type="primary", use_container_width=Tru
             st.session_state.final_link = f"{base_link}{separator}{utm_string}"
         else:
             st.session_state.final_link = base_link
+        
+        # Добавляем в историю
+        if st.session_state.final_link:
+            st.session_state.history.append({
+                'datetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'type': 'UTM ссылка',
+                'value': st.session_state.final_link
+            })
 
 # Отображение результата
 if st.session_state.final_link:
     st.success(f"**Готовая ссылка с UTM:**")
-    st.code(st.session_state.final_link, language=None)
+    
+    col_code, col_copy = st.columns([5, 1])
+    with col_code:
+        st.code(st.session_state.final_link, language=None)
+    with col_copy:
+        copy_js_link = f"""
+        <button onclick="navigator.clipboard.writeText('{st.session_state.final_link}').then(function() {{
+            alert('Скопировано!');
+        }});" style="
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 5px;
+        ">📋 Копировать</button>
+        """
+        st.markdown(copy_js_link, unsafe_allow_html=True)
+
+st.divider()
+
+# ============================================================
+# ИСТОРИЯ ГЕНЕРАЦИЙ
+# ============================================================
+
+st.header("📜 История генераций")
+
+if st.session_state.history:
+    # Кнопки управления историей
+    col_export, col_clear_hist = st.columns([1, 1])
+    
+    with col_export:
+        # Формируем текст для экспорта
+        export_text = "История генераций\n" + "=" * 50 + "\n\n"
+        for item in st.session_state.history:
+            export_text += f"[{item['datetime']}] {item['type']}:\n{item['value']}\n\n"
+        
+        st.download_button(
+            label="📥 Скачать историю (.txt)",
+            data=export_text,
+            file_name=f"naming_history_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+            mime="text/plain",
+            use_container_width=True
+        )
+    
+    with col_clear_hist:
+        if st.button("🗑️ Очистить историю", use_container_width=True):
+            st.session_state.history = []
+            st.rerun()
+    
+    # Отображение истории (от новых к старым)
+    for i, item in enumerate(reversed(st.session_state.history)):
+        with st.container():
+            col_info, col_copy_hist = st.columns([5, 1])
+            with col_info:
+                badge_color = "#1E5AA8" if item['type'] == 'Нейминг' else "#6B4C9A"
+                st.markdown(f'''
+                <div style="background-color: #f5f5f5; padding: 10px; border-radius: 5px; margin-bottom: 10px; border-left: 4px solid {badge_color};">
+                    <small style="color: #666;">📅 {item['datetime']} | <span style="color: {badge_color}; font-weight: bold;">{item['type']}</span></small><br>
+                    <code style="font-size: 12px; word-break: break-all;">{item['value']}</code>
+                </div>
+                ''', unsafe_allow_html=True)
+            with col_copy_hist:
+                # Экранируем кавычки в значении для JavaScript
+                escaped_value = item['value'].replace("'", "\\'")
+                copy_hist_js = f"""
+                <button onclick="navigator.clipboard.writeText('{escaped_value}').then(function() {{
+                    alert('Скопировано!');
+                }});" style="
+                    background-color: #757575;
+                    color: white;
+                    border: none;
+                    padding: 5px 10px;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-size: 12px;
+                    margin-top: 15px;
+                ">📋</button>
+                """
+                st.markdown(copy_hist_js, unsafe_allow_html=True)
+else:
+    st.info("История пуста. Сгенерируйте нейминг или UTM-ссылку.")
+
+st.divider()
+
+# ============================================================
+# ЭКСПОРТ ТЕКУЩИХ РЕЗУЛЬТАТОВ
+# ============================================================
+
+if st.session_state.campaign_name or st.session_state.final_link:
+    st.header("📤 Экспорт результатов")
+    
+    export_current = ""
+    if st.session_state.campaign_name:
+        export_current += f"Нейминг кампании:\n{st.session_state.campaign_name}\n\n"
+    if st.session_state.final_link:
+        export_current += f"UTM ссылка:\n{st.session_state.final_link}\n"
+    
+    col_exp1, col_exp2 = st.columns(2)
+    
+    with col_exp1:
+        st.download_button(
+            label="📥 Скачать результаты (.txt)",
+            data=export_current,
+            file_name=f"campaign_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+            mime="text/plain",
+            use_container_width=True
+        )
+    
+    with col_exp2:
+        # Копировать оба значения
+        both_values = f"{st.session_state.campaign_name}\n{st.session_state.final_link}".strip()
+        escaped_both = both_values.replace("'", "\\'").replace("\n", "\\n")
+        copy_both_js = f"""
+        <button onclick="navigator.clipboard.writeText('{escaped_both}').then(function() {{
+            alert('Скопировано оба значения!');
+        }});" style="
+            background-color: #1976D2;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+        ">📋 Копировать всё</button>
+        """
+        st.markdown(copy_both_js, unsafe_allow_html=True)
 
 st.divider()
 
@@ -352,14 +638,22 @@ with st.expander("ℹ️ Справка по использованию"):
     ### Как пользоваться:
     
     1. **Этап 1** - Выберите параметры нейминга кампании:
-       - Раскройте нужные секции и выберите значения
+       - Заполняйте поля последовательно (следующее разблокируется после заполнения предыдущего)
        - В поле "Тип кампании" можно выбрать несколько значений (они объединятся через `&`)
+       - Смотрите превью нейминга в реальном времени
        - Нажмите **GENERATE NAME**
     
     2. **Этап 2** - Создайте ссылку с UTM:
-       - Введите базовую ссылку
+       - Введите базовую ссылку (должна начинаться с http:// или https://)
        - Выберите UTM параметры (utm_campaign заполнится автоматически)
        - Нажмите **GENERATE LINK + UTM**
+    
+    3. **Дополнительные функции:**
+       - ➕ Добавляйте свои значения в любое поле
+       - 📋 Копируйте результаты одним кликом
+       - 📜 Просматривайте историю генераций
+       - 📥 Скачивайте результаты в файл
+       - 🔄 Сбросить всё — очистить все поля
     
     ### Пример нейминга:
     `adtech-b2c_lpv_cpa_telegram_mk_astrakhan_users_tresponse`
