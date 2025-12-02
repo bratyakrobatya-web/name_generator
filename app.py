@@ -561,14 +561,12 @@ if st.session_state.campaign_name or st.session_state.final_link:
         st.markdown(copy_both_js, unsafe_allow_html=True)
 
 # Отступ внизу страницы чтобы контент не перекрывался фиксированной панелью
-st.markdown("<div style='height: 180px;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height: 160px;'></div>", unsafe_allow_html=True)
 
 # ============================================================
 # ФИКСИРОВАННАЯ ПАНЕЛЬ ВНИЗУ
 # ============================================================
 
-progress_percent = int((completed / total) * 100)
-progress_bar_color = "#4CAF50" if completed == total else "#2196F3"
 preview_display = preview if preview else "Заполните поля выше..."
 naming_color = "#00ff88" if preview else "#888"
 
@@ -612,11 +610,10 @@ utm_color = "#64B5F6" if utm_preview else "#888"
 escaped_naming = preview.replace("'", "\\'").replace('"', '\\"').replace('\n', '') if preview else ""
 escaped_utm = utm_preview.replace("'", "\\'").replace('"', '\\"').replace('\n', '') if utm_preview else ""
 
-# Кнопки копирования - делаем через Streamlit для записи в историю
-# Размещаем в фиксированном контейнере внизу
-st.markdown(f'''
+# CSS для фиксированной панели
+st.markdown('''
 <style>
-.fixed-panel {{
+.fixed-panel {
     position: fixed;
     bottom: 0;
     left: 0;
@@ -625,28 +622,28 @@ st.markdown(f'''
     padding: 18px 30px;
     box-shadow: 0 -6px 30px rgba(0,0,0,0.4);
     z-index: 9999;
-    border-top: 4px solid {progress_bar_color};
-}}
-.panel-inner {{
+    border-top: 4px solid #4CAF50;
+}
+.panel-inner {
     max-width: 1600px;
     margin: 0 auto;
-}}
-.panel-row {{
+}
+.panel-row {
     display: flex;
     align-items: center;
     margin-bottom: 12px;
     gap: 15px;
-}}
-.panel-row:last-child {{
+}
+.panel-row:last-child {
     margin-bottom: 0;
-}}
-.panel-label {{
+}
+.panel-label {
     color: #ccc;
     font-size: 14px;
     min-width: 80px;
     font-weight: 600;
-}}
-.panel-code {{
+}
+.panel-code {
     background: #2d2d44;
     padding: 12px 18px;
     border-radius: 6px;
@@ -656,86 +653,106 @@ st.markdown(f'''
     text-overflow: ellipsis;
     white-space: nowrap;
     font-family: monospace;
-}}
-.panel-code-naming {{
-    color: {naming_color};
-}}
-.panel-code-utm {{
-    color: {utm_color};
-}}
-.progress-area {{
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 200px;
-}}
-.progress-bar-outer {{
-    width: 150px;
-    background: #333;
-    border-radius: 10px;
-    height: 10px;
-    overflow: hidden;
-}}
-.progress-bar-inner {{
-    width: {progress_percent}%;
-    background: {progress_bar_color};
-    height: 100%;
-}}
-.progress-text {{
-    color: #fff;
+}
+.copy-btn {
+    min-width: 140px;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
     font-size: 14px;
-    font-weight: bold;
-}}
-.spacer {{
-    min-width: 200px;
-}}
+    font-weight: 500;
+    border: none;
+    color: #fff;
+    transition: all 0.2s;
+}
+.copy-btn:hover {
+    transform: scale(1.02);
+}
+.copy-btn-green {
+    background: #4CAF50;
+}
+.copy-btn-green:hover {
+    background: #45a049;
+}
+.copy-btn-blue {
+    background: #2196F3;
+}
+.copy-btn-blue:hover {
+    background: #1976D2;
+}
+.copy-btn-disabled {
+    background: #555;
+    opacity: 0.5;
+    cursor: not-allowed;
+}
 </style>
 ''', unsafe_allow_html=True)
 
-# Создаём контейнер для кнопок Streamlit (они будут скрыты, но функциональны)
-copy_naming_col, copy_utm_col = st.columns(2)
+# Формируем кнопки
+if preview:
+    btn_naming = f'''<button class="copy-btn copy-btn-green" onclick="navigator.clipboard.writeText('{escaped_naming}');this.innerText='✓ Скопировано';setTimeout(()=>this.innerText='📋 Копировать',1500)">📋 Копировать</button>'''
+else:
+    btn_naming = '''<div class="copy-btn copy-btn-disabled">📋 Копировать</div>'''
 
-with copy_naming_col:
-    if preview:
-        if st.button("📋 Копировать нейминг и сохранить", key="panel_copy_naming", use_container_width=True):
-            st.session_state.history.append({
-                'datetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'type': 'Нейминг',
-                'value': preview
-            })
-            st.toast("✅ Нейминг скопирован и сохранён в историю!")
-            st.markdown(f'<script>navigator.clipboard.writeText("{escaped_naming}");</script>', unsafe_allow_html=True)
+if utm_preview:
+    btn_utm = f'''<button class="copy-btn copy-btn-blue" onclick="navigator.clipboard.writeText('{escaped_utm}');this.innerText='✓ Скопировано';setTimeout(()=>this.innerText='📋 Копировать',1500)">📋 Копировать</button>'''
+else:
+    btn_utm = '''<div class="copy-btn copy-btn-disabled">📋 Копировать</div>'''
 
-with copy_utm_col:
-    if utm_preview:
-        if st.button("📋 Копировать UTM и сохранить", key="panel_copy_utm", use_container_width=True):
-            st.session_state.history.append({
-                'datetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'type': 'UTM ссылка',
-                'value': utm_preview
-            })
-            st.toast("✅ UTM ссылка скопирована и сохранена в историю!")
-            st.markdown(f'<script>navigator.clipboard.writeText("{escaped_utm}");</script>', unsafe_allow_html=True)
-
-# HTML панель (только для отображения)
+# HTML панель
 st.markdown(f'''
 <div class="fixed-panel">
 <div class="panel-inner">
 <div class="panel-row">
 <span class="panel-label">Нейминг:</span>
-<code class="panel-code panel-code-naming">{preview_display}</code>
-<div class="progress-area">
-<div class="progress-bar-outer">
-<div class="progress-bar-inner"></div>
-</div>
-<span class="progress-text">{completed}/{total}</span>
-</div>
+<code class="panel-code" style="color:{naming_color};">{preview_display}</code>
+{btn_naming}
 </div>
 <div class="panel-row">
 <span class="panel-label">UTM:</span>
-<code class="panel-code panel-code-utm">{utm_display}</code>
-<div class="spacer"></div>
+<code class="panel-code" style="color:{utm_color};">{utm_display}</code>
+{btn_utm}
 </div>
 </div>
 </div>
 ''', unsafe_allow_html=True)
+
+# Streamlit кнопки для записи в историю (скрытые, но функциональные)
+# Используем контейнер с CSS для скрытия
+st.markdown('''
+<style>
+.history-buttons-container {
+    position: fixed;
+    bottom: 200px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+</style>
+''', unsafe_allow_html=True)
+
+# Кнопки для записи в историю (маленькие, в углу)
+with st.container():
+    hist_col1, hist_col2 = st.columns([1, 1])
+    with hist_col1:
+        if preview:
+            if st.button("💾 Сохранить нейминг", key="save_naming_hist", use_container_width=True):
+                st.session_state.history.append({
+                    'datetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'type': 'Нейминг',
+                    'value': preview
+                })
+                st.toast("✅ Нейминг сохранён в историю!")
+                st.rerun()
+    with hist_col2:
+        if utm_preview:
+            if st.button("💾 Сохранить UTM", key="save_utm_hist", use_container_width=True):
+                st.session_state.history.append({
+                    'datetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'type': 'UTM ссылка',
+                    'value': utm_preview
+                })
+                st.toast("✅ UTM сохранена в историю!")
+                st.rerun()
