@@ -5,6 +5,42 @@ from datetime import datetime
 import re
 
 # ============================================================
+# НАСТРОЙКА СТРАНИЦЫ (должна быть первой командой Streamlit)
+# ============================================================
+
+st.set_page_config(
+    page_title="Генератор нейминга и UTM", 
+    page_icon="🏷️", 
+    layout="wide"
+)
+
+# ============================================================
+# ПОДКЛЮЧЕНИЕ ШРИФТА GOLOS TEXT
+# ============================================================
+
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'Golos Text', sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Golos Text', sans-serif;
+}
+
+.stSelectbox, .stMultiSelect, .stTextInput {
+    font-family: 'Golos Text', sans-serif;
+}
+
+code {
+    font-family: 'Courier New', monospace;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ============================================================
 # КОНФИГУРАЦИЯ ДАННЫХ (дефолтные значения)
 # ============================================================
 
@@ -120,8 +156,6 @@ def clear_all():
 # ============================================================
 # STREAMLIT UI
 # ============================================================
-
-st.set_page_config(page_title="Генератор нейминга и UTM", page_icon="🏷️", layout="wide")
 
 st.title("🏷️ Генератор нейминга кампании и UTM")
 
@@ -597,109 +631,148 @@ if st.session_state.campaign_name or st.session_state.final_link:
 
 st.divider()
 
-# ============================================================
-# ПОДСКАЗКА
-# ============================================================
-
-with st.expander("ℹ️ Справка по использованию"):
-    st.markdown("""
-    ### Как пользоваться:
-    
-    1. **Этап 1** - Выберите параметры нейминга кампании:
-       - Заполняйте поля последовательно (следующее разблокируется после заполнения предыдущего)
-       - В поле "Тип кампании" можно выбрать несколько значений (они объединятся через `&`)
-       - Нейминг генерируется автоматически — смотрите фиксированную панель внизу
-       - Нажмите **Сохранить в историю** чтобы сохранить результат
-    
-    2. **Этап 2** - Создайте ссылку с UTM:
-       - Введите базовую ссылку (должна начинаться с http:// или https://)
-       - Выберите UTM параметры (utm_campaign заполнится автоматически)
-       - Нажмите **GENERATE LINK + UTM**
-    
-    3. **Дополнительные функции:**
-       - ➕ Добавляйте свои значения в любое поле
-       - 📋 Копируйте результаты одним кликом
-       - 📜 Просматривайте историю генераций
-       - 📥 Скачивайте результаты в файл
-       - 🔄 Сбросить всё — очистить все поля
-    
-    ### Пример нейминга:
-    `adtech-b2c_lpv_cpa_telegram_mk_astrakhan_users_tresponse`
-    
-    ### Примечание для TG Ads:
-    *Для отслеживания таргетированного отклика прописываем: utm_medium=cpc_yandex_direct и utm_vacancy={utm_vacancy}*
-    """)
-
 # Отступ внизу страницы чтобы контент не перекрывался фиксированной панелью
 st.markdown("<div style='height: 120px;'></div>", unsafe_allow_html=True)
+
+# ============================================================
+# САЙДБАР СО СПРАВКОЙ
+# ============================================================
+
+with st.sidebar:
+    st.header("ℹ️ Справка")
+    
+    st.markdown("""
+    ### Как пользоваться
+    
+    **Этап 1** — Нейминг кампании:
+    - Заполняйте поля последовательно
+    - "Тип кампании" — можно несколько значений (объединятся через `&`)
+    - Нейминг генерируется автоматически внизу
+    - Нажмите **Сохранить в историю**
+    
+    **Этап 2** — UTM ссылка:
+    - Введите базовую ссылку (http:// или https://)
+    - Выберите UTM параметры
+    - Нажмите **GENERATE LINK + UTM**
+    
+    ---
+    
+    ### Функции
+    - ➕ Добавить своё значение
+    - 📋 Копировать результат
+    - 📜 История генераций
+    - 📥 Скачать в файл
+    - 🔄 Сбросить всё
+    
+    ---
+    
+    ### Пример нейминга
+    ```
+    adtech-b2c_lpv_cpa_telegram_mk_astrakhan_users_tresponse
+    ```
+    
+    ---
+    
+    ### TG Ads
+    *utm_medium=cpc_yandex_direct*  
+    *utm_vacancy={utm_vacancy}*
+    """)
 
 # ============================================================
 # ФИКСИРОВАННАЯ ПАНЕЛЬ ВНИЗУ
 # ============================================================
 
-# Формируем содержимое панели
 progress_percent = int((completed / total) * 100)
 progress_bar_color = "#4CAF50" if completed == total else "#2196F3"
-
 preview_display = preview if preview else "Начните заполнять поля..."
-preview_color = "#333" if preview else "#999"
+naming_color = "#00ff88" if preview else "#888"
 
-# Кнопка копирования (если есть что копировать)
-copy_button_html = ""
-if preview:
-    escaped_preview = preview.replace("'", "\\'")
-    copy_button_html = f"""
-    <button onclick="navigator.clipboard.writeText('{escaped_preview}').then(function() {{
-        var btn = this; btn.innerText = '✓'; setTimeout(function(){{ btn.innerText = '📋'; }}, 1000);
-    }});" style="
-        background-color: #4CAF50;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 5px;
-        cursor: pointer;
-        font-size: 16px;
-        margin-left: 10px;
-    ">📋</button>
-    """
-
+# Формируем HTML без проблемной кнопки копирования
 fixed_panel_html = f"""
-<div style="
+<style>
+.fixed-bottom-panel {{
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    padding: 15px 30px;
+    padding: 12px 20px;
     box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
     z-index: 9999;
     border-top: 3px solid {progress_bar_color};
-">
-    <div style="max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between;">
-        <div style="flex: 1;">
-            <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                <span style="color: #aaa; font-size: 12px; margin-right: 10px;">Прогресс:</span>
-                <div style="flex: 1; max-width: 200px; background: #333; border-radius: 10px; height: 8px; overflow: hidden;">
-                    <div style="width: {progress_percent}%; background: {progress_bar_color}; height: 100%; transition: width 0.3s;"></div>
-                </div>
-                <span style="color: #fff; font-size: 12px; margin-left: 10px; font-weight: bold;">{completed}/{total}</span>
+    font-family: 'Golos Text', sans-serif;
+}}
+.panel-content {{
+    max-width: 1200px;
+    margin: 0 auto;
+}}
+.progress-row {{
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+}}
+.progress-label {{
+    color: #aaa;
+    font-size: 12px;
+    margin-right: 10px;
+    min-width: 70px;
+}}
+.progress-bar-bg {{
+    flex: 1;
+    max-width: 200px;
+    background: #333;
+    border-radius: 10px;
+    height: 8px;
+    overflow: hidden;
+}}
+.progress-bar-fill {{
+    width: {progress_percent}%;
+    background: {progress_bar_color};
+    height: 100%;
+    transition: width 0.3s;
+}}
+.progress-text {{
+    color: #fff;
+    font-size: 12px;
+    margin-left: 10px;
+    font-weight: bold;
+}}
+.naming-row {{
+    display: flex;
+    align-items: center;
+}}
+.naming-label {{
+    color: #aaa;
+    font-size: 12px;
+    margin-right: 10px;
+    min-width: 70px;
+}}
+.naming-value {{
+    background: #2d2d44;
+    color: {naming_color};
+    padding: 8px 15px;
+    border-radius: 5px;
+    font-size: 14px;
+    font-family: 'Courier New', monospace;
+    max-width: 800px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}}
+</style>
+
+<div class="fixed-bottom-panel">
+    <div class="panel-content">
+        <div class="progress-row">
+            <span class="progress-label">Прогресс:</span>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill"></div>
             </div>
-            <div style="display: flex; align-items: center;">
-                <span style="color: #aaa; font-size: 12px; margin-right: 10px;">Нейминг:</span>
-                <code style="
-                    background: #2d2d44;
-                    color: {preview_color if not preview else '#00ff88'};
-                    padding: 8px 15px;
-                    border-radius: 5px;
-                    font-size: 14px;
-                    font-family: 'Courier New', monospace;
-                    max-width: 700px;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
-                ">{preview_display}</code>
-                {copy_button_html}
-            </div>
+            <span class="progress-text">{completed}/{total}</span>
+        </div>
+        <div class="naming-row">
+            <span class="naming-label">Нейминг:</span>
+            <code class="naming-value">{preview_display}</code>
         </div>
     </div>
 </div>
