@@ -54,6 +54,21 @@ code, pre, .stCode {
     max-height: 36px;
 }
 
+/* Кнопки добавления (➕) - прозрачные, без фона */
+.stButton button:has-text("➕") {
+    background: transparent !important;
+    border: none !important;
+    color: #666 !important;
+    font-size: 20px !important;
+    padding: 4px 8px !important;
+    min-width: 40px !important;
+}
+
+.stButton button:has-text("➕"):hover {
+    color: #1E5AA8 !important;
+    background: transparent !important;
+}
+
 /* Заголовки полей */
 .field-label {
     font-size: 17px;
@@ -131,7 +146,7 @@ code, pre, .stCode {
     border: none !important;
     border-radius: 4px !important;
     padding: 10px 12px !important;
-    color: #48bb78 !important; /* Зеленый для нейминга */
+    color: #00ff88 !important; /* Яркий зеленый для нейминга */
     font-family: 'Courier New', monospace !important;
     font-size: 13px !important;
     display: block !important;
@@ -140,6 +155,7 @@ code, pre, .stCode {
     overflow-wrap: break-word !important;
     max-width: 100% !important;
     line-height: 1.4 !important;
+    font-weight: 600 !important;
 }
 
 /* Убираем белые контейнеры */
@@ -160,9 +176,9 @@ code, pre, .stCode {
     padding: 0 !important;
 }
 
-/* Зеленый текст для UTM (светлее чем нейминг) */
+/* Яркий зеленый для UTM (светлее чем нейминг) */
 [data-testid="stSidebar"] .utm-code code {
-    color: #68d391 !important;
+    color: #4ade80 !important;
 }
 
 /* Разделитель */
@@ -615,6 +631,15 @@ with col_utm3:
 import streamlit.components.v1 as components
 
 with st.sidebar:
+    # Логотип HH
+    st.markdown("""
+    <div style="text-align: center; padding: 10px 0 20px 0;">
+        <img src="https://raw.githubusercontent.com/bratyakrobatya-web/name_generator/main/min-hh-red.png" 
+             style="width: 60px; height: auto;" 
+             alt="HH Logo">
+    </div>
+    """, unsafe_allow_html=True)
+    
     st.markdown("### 📋 Результат")
     
     # Получаем все значения
