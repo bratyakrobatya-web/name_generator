@@ -122,11 +122,11 @@ code, pre, .stCode {
 
 /* СТИЛИ САЙДБАРА */
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #2d3748 0%, #1a202c 100%);
+    background: #ffffff !important;
 }
 
 [data-testid="stSidebar"] .stMarkdown h3 {
-    color: #ffffff;
+    color: #333333;
     font-weight: 700;
     font-size: 18px;
     margin-bottom: 10px;
@@ -134,7 +134,7 @@ code, pre, .stCode {
 
 [data-testid="stSidebar"] .stMarkdown p,
 [data-testid="stSidebar"] .stMarkdown strong {
-    color: #e2e8f0;
+    color: #555555;
     font-size: 13px;
     font-weight: 600;
     margin-bottom: 5px;
@@ -183,9 +183,9 @@ code, pre, .stCode {
 
 /* Разделитель */
 [data-testid="stSidebar"] hr {
-    border-color: #4a5568 !important;
+    border-color: #e2e8f0 !important;
     margin: 15px 0 !important;
-    opacity: 0.3;
+    opacity: 0.5;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -478,29 +478,6 @@ current_client_geo = st.session_state.get('client_geo', '')
 current_targeting = st.session_state.get('targeting', '')
 current_goal = st.session_state.get('goal', '')
 
-# Прогресс-бар
-completed_steps = sum([
-    bool(current_product),
-    bool(current_stream),
-    bool(current_expense),
-    bool(current_source),
-    bool(current_campaign_types),
-    bool(current_client_geo),
-    bool(current_targeting),
-    bool(current_goal)
-])
-total_steps = 8
-progress_percent = (completed_steps / total_steps) * 100
-
-st.markdown(f'''
-<div class="progress-container">
-    <div class="progress-bar" style="width: {progress_percent}%"></div>
-</div>
-<p style="text-align: center; color: #666; font-size: 13px; margin-top: -10px; margin-bottom: 15px;">
-    {completed_steps} из {total_steps} завершено
-</p>
-''', unsafe_allow_html=True)
-
 # ============================================================
 # ЭТАП 1: НЕЙМИНГ
 # ============================================================
@@ -576,18 +553,92 @@ if not naming_ready:
 
 # utm_source
 utm_source_disabled = not naming_ready
-st.markdown('<p class="field-label">utm_source</p>' if not utm_source_disabled else '<p class="field-label field-label-disabled">utm_source 🔒</p>', unsafe_allow_html=True)
+col_label, col_add = st.columns([6, 1])
+with col_label:
+    if utm_source_disabled:
+        st.markdown('<p class="field-label field-label-disabled">utm_source 🔒</p>', unsafe_allow_html=True)
+    else:
+        st.markdown('<p class="field-label">utm_source</p>', unsafe_allow_html=True)
+with col_add:
+    if not utm_source_disabled:
+        if st.button("➕", key="add_btn_utm_source", help="Добавить своё значение", use_container_width=True):
+            st.session_state["show_add_utm_source_select"] = True
+
 if not utm_source_disabled:
-    render_button_field("", "", DEFAULT_UTM_PARAMS["utm_source"], "utm_source_select", columns=4)
+    # Поле добавления
+    if st.session_state.get("show_add_utm_source_select", False):
+        col_input, col_btn_add, col_btn_cancel = st.columns([4, 1, 1])
+        with col_input:
+            new_val = st.text_input("Новое значение:", key="new_input_utm_source_select", placeholder="Введите значение...", label_visibility="collapsed")
+        with col_btn_add:
+            if st.button("✓", key="confirm_utm_source_select", help="Добавить", use_container_width=True, type="primary"):
+                if new_val and new_val.strip():
+                    if new_val.strip() not in DEFAULT_UTM_PARAMS["utm_source"]:
+                        DEFAULT_UTM_PARAMS["utm_source"].append(new_val.strip())
+                        st.session_state["show_add_utm_source_select"] = False
+                        st.rerun()
+                    else:
+                        st.toast("Значение уже есть в списке", icon="⚠️")
+        with col_btn_cancel:
+            if st.button("✗", key="cancel_utm_source_select", help="Отмена", use_container_width=True):
+                st.session_state["show_add_utm_source_select"] = False
+                st.rerun()
+    
+    # Кнопки выбора
+    cols = st.columns(4)
+    current_value = st.session_state.get("utm_source_select", "")
+    for i, option in enumerate(DEFAULT_UTM_PARAMS["utm_source"]):
+        with cols[i % 4]:
+            button_type = "primary" if option == current_value else "secondary"
+            if st.button(option, key=f"utm_source_select_{option}", type=button_type, use_container_width=True):
+                st.session_state["utm_source_select"] = option
+                st.rerun()
 else:
     st.info("🔒 Заполните нейминг")
 
 # utm_medium
 current_utm_source = st.session_state.get('utm_source_select', '')
 utm_medium_disabled = not bool(current_utm_source)
-st.markdown('<p class="field-label">utm_medium</p>' if not utm_medium_disabled else '<p class="field-label field-label-disabled">utm_medium 🔒</p>', unsafe_allow_html=True)
+col_label2, col_add2 = st.columns([6, 1])
+with col_label2:
+    if utm_medium_disabled:
+        st.markdown('<p class="field-label field-label-disabled">utm_medium 🔒</p>', unsafe_allow_html=True)
+    else:
+        st.markdown('<p class="field-label">utm_medium</p>', unsafe_allow_html=True)
+with col_add2:
+    if not utm_medium_disabled:
+        if st.button("➕", key="add_btn_utm_medium", help="Добавить своё значение", use_container_width=True):
+            st.session_state["show_add_utm_medium_select"] = True
+
 if not utm_medium_disabled:
-    render_button_field("", "", DEFAULT_UTM_PARAMS["utm_medium"], "utm_medium_select", columns=3)
+    # Поле добавления
+    if st.session_state.get("show_add_utm_medium_select", False):
+        col_input, col_btn_add, col_btn_cancel = st.columns([4, 1, 1])
+        with col_input:
+            new_val = st.text_input("Новое значение:", key="new_input_utm_medium_select", placeholder="Введите значение...", label_visibility="collapsed")
+        with col_btn_add:
+            if st.button("✓", key="confirm_utm_medium_select", help="Добавить", use_container_width=True, type="primary"):
+                if new_val and new_val.strip():
+                    if new_val.strip() not in DEFAULT_UTM_PARAMS["utm_medium"]:
+                        DEFAULT_UTM_PARAMS["utm_medium"].append(new_val.strip())
+                        st.session_state["show_add_utm_medium_select"] = False
+                        st.rerun()
+                    else:
+                        st.toast("Значение уже есть в списке", icon="⚠️")
+        with col_btn_cancel:
+            if st.button("✗", key="cancel_utm_medium_select", help="Отмена", use_container_width=True):
+                st.session_state["show_add_utm_medium_select"] = False
+                st.rerun()
+    
+    # Кнопки выбора
+    cols = st.columns(3)
+    current_value = st.session_state.get("utm_medium_select", "")
+    for i, option in enumerate(DEFAULT_UTM_PARAMS["utm_medium"]):
+        with cols[i % 3]:
+            button_type = "primary" if option == current_value else "secondary"
+            if st.button(option, key=f"utm_medium_select_{option}", type=button_type, use_container_width=True):
+                st.session_state["utm_medium_select"] = option
+                st.rerun()
 else:
     st.info("🔒 Выберите utm_source")
 
@@ -633,9 +684,9 @@ import streamlit.components.v1 as components
 with st.sidebar:
     # Логотип HH
     st.markdown("""
-    <div style="text-align: center; padding: 10px 0 20px 0;">
+    <div style="text-align: center; padding: 15px 0 25px 0;">
         <img src="https://raw.githubusercontent.com/bratyakrobatya-web/name_generator/main/min-hh-red.png" 
-             style="width: 60px; height: auto;" 
+             style="width: 120px; height: auto;" 
              alt="HH Logo">
     </div>
     """, unsafe_allow_html=True)
@@ -773,3 +824,38 @@ with st.sidebar:
         </body></html>
         '''
         components.html(btn_html_utm, height=50)
+    
+    # Прогресс-бар внизу сайдбара
+    st.markdown("---")
+    
+    # Получаем данные для прогресса
+    current_product = st.session_state.get('product', '')
+    current_stream = st.session_state.get('stream', '')
+    current_expense = st.session_state.get('expense', '')
+    current_source = st.session_state.get('source', '')
+    current_campaign_types = st.session_state.get('campaign_types', [])
+    current_client_geo = st.session_state.get('client_geo', '')
+    current_targeting = st.session_state.get('targeting', '')
+    current_goal = st.session_state.get('goal', '')
+    
+    completed_steps = sum([
+        bool(current_product),
+        bool(current_stream),
+        bool(current_expense),
+        bool(current_source),
+        bool(current_campaign_types),
+        bool(current_client_geo),
+        bool(current_targeting),
+        bool(current_goal)
+    ])
+    total_steps = 8
+    progress_percent = (completed_steps / total_steps) * 100
+    
+    st.markdown(f'''
+    <div class="progress-container">
+        <div class="progress-bar" style="width: {progress_percent}%"></div>
+    </div>
+    <p style="text-align: center; color: #666; font-size: 13px; margin-top: 8px;">
+        {completed_steps} из {total_steps} завершено
+    </p>
+    ''', unsafe_allow_html=True)
