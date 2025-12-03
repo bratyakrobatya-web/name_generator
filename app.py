@@ -502,38 +502,21 @@ utm_color = "#64B5F6" if utm_preview else "#888"
 escaped_naming = preview.replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"').replace('\n', '').replace('\r', '') if preview else ""
 escaped_utm = utm_preview.replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"').replace('\n', '').replace('\r', '') if utm_preview else ""
 
-# Используем st.components.v1.html для работы JavaScript
+# Используем st.components.v1.html для кнопок копирования
 import streamlit.components.v1 as components
 
-# Формируем кнопки
-if preview:
-    btn_naming = f'''<button class="copy-btn copy-btn-green" onclick="copyText('{escaped_naming}', this)">📋 Копировать</button>'''
-else:
-    btn_naming = '''<div class="copy-btn copy-btn-disabled">📋 Копировать</div>'''
-
-if utm_preview:
-    btn_utm = f'''<button class="copy-btn copy-btn-blue" onclick="copyText('{escaped_utm}', this)">📋 Копировать</button>'''
-else:
-    btn_utm = '''<div class="copy-btn copy-btn-disabled">📋 Копировать</div>'''
-
-# HTML панель через components.html (позволяет выполнять JS)
-panel_html = f'''
-<!DOCTYPE html>
-<html>
-<head>
+# CSS для фиксированной панели (без кнопок)
+st.markdown(f'''
 <style>
-* {{
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}}
-body {{
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: transparent;
-}}
 .fixed-panel {{
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
     background: linear-gradient(135deg, #1a1a2e, #16213e);
     padding: 18px 30px;
+    box-shadow: 0 -6px 30px rgba(0,0,0,0.4);
+    z-index: 9999;
     border-top: 4px solid #4CAF50;
 }}
 .panel-inner {{
@@ -566,97 +549,114 @@ body {{
     white-space: nowrap;
     font-family: 'Courier New', monospace;
 }}
-.copy-btn {{
+.btn-placeholder {{
     min-width: 160px;
-    padding: 14px 28px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: 600;
-    border: none;
-    color: #fff;
-    transition: all 0.2s;
-}}
-.copy-btn:hover {{
-    transform: scale(1.03);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}}
-.copy-btn-green {{
-    background: #4CAF50;
-}}
-.copy-btn-green:hover {{
-    background: #45a049;
-}}
-.copy-btn-blue {{
-    background: #2196F3;
-}}
-.copy-btn-blue:hover {{
-    background: #1976D2;
-}}
-.copy-btn-disabled {{
-    background: #555;
-    opacity: 0.5;
-    cursor: not-allowed;
+    height: 52px;
 }}
 </style>
-</head>
-<body>
+
 <div class="fixed-panel">
 <div class="panel-inner">
 <div class="panel-row">
 <span class="panel-label">Нейминг:</span>
 <code class="panel-code" style="color:{naming_color};">{preview_display}</code>
-{btn_naming}
+<div class="btn-placeholder" id="btn-naming-slot"></div>
 </div>
 <div class="panel-row">
 <span class="panel-label">UTM:</span>
 <code class="panel-code" style="color:{utm_color};">{utm_display}</code>
-{btn_utm}
+<div class="btn-placeholder" id="btn-utm-slot"></div>
 </div>
 </div>
 </div>
+''', unsafe_allow_html=True)
 
-<script>
-function copyText(text, btn) {{
-    if (navigator.clipboard && navigator.clipboard.writeText) {{
-        navigator.clipboard.writeText(text).then(function() {{
-            btn.innerText = '✓ Скопировано';
-            setTimeout(function() {{ btn.innerText = '📋 Копировать'; }}, 1500);
-        }}).catch(function() {{
-            fallbackCopy(text, btn);
-        }});
-    }} else {{
-        fallbackCopy(text, btn);
-    }}
-}}
+# Кнопки копирования через components.html (работает JS)
+st.markdown("### 📋 Копирование")
+col_btn1, col_btn2 = st.columns(2)
 
-function fallbackCopy(text, btn) {{
-    var textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.style.position = 'fixed';
-    textarea.style.left = '-9999px';
-    textarea.style.top = '0';
-    document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.select();
-    try {{
-        var successful = document.execCommand('copy');
-        if (successful) {{
-            btn.innerText = '✓ Скопировано';
-        }} else {{
-            btn.innerText = '✗ Ошибка';
+with col_btn1:
+    if preview:
+        btn_html = f'''
+        <html><head><style>
+        * {{ margin: 0; padding: 0; }}
+        body {{ background: transparent; }}
+        .copy-btn {{
+            width: 100%;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            color: #fff;
+            background: #4CAF50;
+            transition: all 0.2s;
         }}
-        setTimeout(function() {{ btn.innerText = '📋 Копировать'; }}, 1500);
-    }} catch (err) {{
-        btn.innerText = '✗ Ошибка';
-        setTimeout(function() {{ btn.innerText = '📋 Копировать'; }}, 1500);
-    }}
-    document.body.removeChild(textarea);
-}}
-</script>
-</body>
-</html>
-'''
+        .copy-btn:hover {{ background: #45a049; transform: scale(1.02); }}
+        </style></head><body>
+        <button class="copy-btn" onclick="
+            navigator.clipboard.writeText('{escaped_naming}').then(function() {{
+                document.querySelector('.copy-btn').innerText = '✓ Скопировано!';
+                setTimeout(function() {{ document.querySelector('.copy-btn').innerText = '📋 Копировать нейминг'; }}, 1500);
+            }}).catch(function() {{
+                var ta = document.createElement('textarea');
+                ta.value = '{escaped_naming}';
+                ta.style.position = 'fixed';
+                ta.style.left = '-9999px';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                document.querySelector('.copy-btn').innerText = '✓ Скопировано!';
+                setTimeout(function() {{ document.querySelector('.copy-btn').innerText = '📋 Копировать нейминг'; }}, 1500);
+            }});
+        ">📋 Копировать нейминг</button>
+        </body></html>
+        '''
+        components.html(btn_html, height=50)
+    else:
+        st.button("📋 Копировать нейминг", disabled=True, use_container_width=True)
 
-# Рендерим панель как компонент (height подбираем под содержимое)
-components.html(panel_html, height=140, scrolling=False)
+with col_btn2:
+    if utm_preview:
+        btn_html = f'''
+        <html><head><style>
+        * {{ margin: 0; padding: 0; }}
+        body {{ background: transparent; }}
+        .copy-btn {{
+            width: 100%;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            color: #fff;
+            background: #2196F3;
+            transition: all 0.2s;
+        }}
+        .copy-btn:hover {{ background: #1976D2; transform: scale(1.02); }}
+        </style></head><body>
+        <button class="copy-btn" onclick="
+            navigator.clipboard.writeText('{escaped_utm}').then(function() {{
+                document.querySelector('.copy-btn').innerText = '✓ Скопировано!';
+                setTimeout(function() {{ document.querySelector('.copy-btn').innerText = '📋 Копировать UTM'; }}, 1500);
+            }}).catch(function() {{
+                var ta = document.createElement('textarea');
+                ta.value = '{escaped_utm}';
+                ta.style.position = 'fixed';
+                ta.style.left = '-9999px';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                document.querySelector('.copy-btn').innerText = '✓ Скопировано!';
+                setTimeout(function() {{ document.querySelector('.copy-btn').innerText = '📋 Копировать UTM'; }}, 1500);
+            }});
+        ">📋 Копировать UTM</button>
+        </body></html>
+        '''
+        components.html(btn_html, height=50)
+    else:
+        st.button("📋 Копировать UTM", disabled=True, use_container_width=True)
