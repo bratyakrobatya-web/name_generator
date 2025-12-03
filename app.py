@@ -499,113 +499,13 @@ utm_display = utm_preview if utm_preview else "Введите ссылку и UT
 utm_color = "#64B5F6" if utm_preview else "#888"
 
 # Экранируем для JavaScript
-escaped_naming = preview.replace("'", "\\'").replace('"', '\\"').replace('\n', '') if preview else ""
-escaped_utm = utm_preview.replace("'", "\\'").replace('"', '\\"').replace('\n', '') if utm_preview else ""
+escaped_naming = preview.replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"').replace('\n', '').replace('\r', '') if preview else ""
+escaped_utm = utm_preview.replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"').replace('\n', '').replace('\r', '') if utm_preview else ""
 
-# CSS для фиксированной панели
-st.markdown('''
-<style>
-.fixed-panel {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(135deg, #1a1a2e, #16213e);
-    padding: 18px 30px;
-    box-shadow: 0 -6px 30px rgba(0,0,0,0.4);
-    z-index: 9999;
-    border-top: 4px solid #4CAF50;
-}
-.panel-inner {
-    max-width: 1600px;
-    margin: 0 auto;
-}
-.panel-row {
-    display: flex;
-    align-items: center;
-    margin-bottom: 12px;
-    gap: 15px;
-}
-.panel-row:last-child {
-    margin-bottom: 0;
-}
-.panel-label {
-    color: #ccc;
-    font-size: 14px;
-    min-width: 80px;
-    font-weight: 600;
-}
-.panel-code {
-    background: #2d2d44;
-    padding: 12px 18px;
-    border-radius: 6px;
-    font-size: 16px;
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-family: monospace;
-}
-.copy-btn {
-    min-width: 160px;
-    padding: 14px 28px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: 600;
-    border: none;
-    color: #fff;
-    transition: all 0.2s;
-}
-.copy-btn:hover {
-    transform: scale(1.03);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}
-.copy-btn-green {
-    background: #4CAF50;
-}
-.copy-btn-green:hover {
-    background: #45a049;
-}
-.copy-btn-blue {
-    background: #2196F3;
-}
-.copy-btn-blue:hover {
-    background: #1976D2;
-}
-.copy-btn-disabled {
-    background: #555;
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-</style>
-''', unsafe_allow_html=True)
+# Используем st.components.v1.html для работы JavaScript
+import streamlit.components.v1 as components
 
-# Формируем кнопки с fallback методом копирования
-copy_script = '''
-<script>
-function copyText(text, btn) {
-    var textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.style.position = 'fixed';
-    textarea.style.left = '-9999px';
-    textarea.style.top = '0';
-    document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.select();
-    try {
-        document.execCommand('copy');
-        btn.innerText = '✓ Скопировано';
-        setTimeout(function() { btn.innerText = '📋 Копировать'; }, 1500);
-    } catch (err) {
-        btn.innerText = '✗ Ошибка';
-        setTimeout(function() { btn.innerText = '📋 Копировать'; }, 1500);
-    }
-    document.body.removeChild(textarea);
-}
-</script>
-'''
-
+# Формируем кнопки
 if preview:
     btn_naming = f'''<button class="copy-btn copy-btn-green" onclick="copyText('{escaped_naming}', this)">📋 Копировать</button>'''
 else:
@@ -616,9 +516,91 @@ if utm_preview:
 else:
     btn_utm = '''<div class="copy-btn copy-btn-disabled">📋 Копировать</div>'''
 
-# HTML панель
-st.markdown(f'''
-{copy_script}
+# HTML панель через components.html (позволяет выполнять JS)
+panel_html = f'''
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+* {{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}}
+body {{
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: transparent;
+}}
+.fixed-panel {{
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    padding: 18px 30px;
+    border-top: 4px solid #4CAF50;
+}}
+.panel-inner {{
+    max-width: 1600px;
+    margin: 0 auto;
+}}
+.panel-row {{
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 15px;
+}}
+.panel-row:last-child {{
+    margin-bottom: 0;
+}}
+.panel-label {{
+    color: #ccc;
+    font-size: 14px;
+    min-width: 80px;
+    font-weight: 600;
+}}
+.panel-code {{
+    background: #2d2d44;
+    padding: 12px 18px;
+    border-radius: 6px;
+    font-size: 15px;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: 'Courier New', monospace;
+}}
+.copy-btn {{
+    min-width: 160px;
+    padding: 14px 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    color: #fff;
+    transition: all 0.2s;
+}}
+.copy-btn:hover {{
+    transform: scale(1.03);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}}
+.copy-btn-green {{
+    background: #4CAF50;
+}}
+.copy-btn-green:hover {{
+    background: #45a049;
+}}
+.copy-btn-blue {{
+    background: #2196F3;
+}}
+.copy-btn-blue:hover {{
+    background: #1976D2;
+}}
+.copy-btn-disabled {{
+    background: #555;
+    opacity: 0.5;
+    cursor: not-allowed;
+}}
+</style>
+</head>
+<body>
 <div class="fixed-panel">
 <div class="panel-inner">
 <div class="panel-row">
@@ -633,4 +615,48 @@ st.markdown(f'''
 </div>
 </div>
 </div>
-''', unsafe_allow_html=True)
+
+<script>
+function copyText(text, btn) {{
+    if (navigator.clipboard && navigator.clipboard.writeText) {{
+        navigator.clipboard.writeText(text).then(function() {{
+            btn.innerText = '✓ Скопировано';
+            setTimeout(function() {{ btn.innerText = '📋 Копировать'; }}, 1500);
+        }}).catch(function() {{
+            fallbackCopy(text, btn);
+        }});
+    }} else {{
+        fallbackCopy(text, btn);
+    }}
+}}
+
+function fallbackCopy(text, btn) {{
+    var textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    textarea.style.top = '0';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try {{
+        var successful = document.execCommand('copy');
+        if (successful) {{
+            btn.innerText = '✓ Скопировано';
+        }} else {{
+            btn.innerText = '✗ Ошибка';
+        }}
+        setTimeout(function() {{ btn.innerText = '📋 Копировать'; }}, 1500);
+    }} catch (err) {{
+        btn.innerText = '✗ Ошибка';
+        setTimeout(function() {{ btn.innerText = '📋 Копировать'; }}, 1500);
+    }}
+    document.body.removeChild(textarea);
+}}
+</script>
+</body>
+</html>
+'''
+
+# Рендерим панель как компонент (height подбираем под содержимое)
+components.html(panel_html, height=140, scrolling=False)
