@@ -242,13 +242,11 @@ FAVORITES = {
     "Таргетинг": ["users", "channel", "bigdata", "segment6-12", "bdhh"],
 }
 
-# Умные дефолты: source → utm параметры
-SMART_DEFAULTS = {
-    "telegram": {"utm_source": "tgads", "utm_medium": "cpc_yandex_direct"},
-    "tgads": {"utm_source": "tgads", "utm_medium": "cpc_yandex_direct"},
-    "yandex": {"utm_source": "yandex", "utm_medium": "cpc"},
-    "vk": {"utm_source": "vk", "utm_medium": "cpc"},
-}
+# Умные дефолты: source → utm параметры (УДАЛЕНО - не используется)
+# SMART_DEFAULTS = {
+#     "telegram": {"utm_source": "tgads", "utm_medium": "cpc_yandex_direct"},
+#     ...
+# }
 
 # ============================================================
 # ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
@@ -300,15 +298,6 @@ def clear_all():
                 st.session_state[key] = ""
     st.session_state.campaign_name = ""
     st.session_state.final_link = ""
-
-def apply_smart_defaults(source):
-    """Применяет умные дефолты для UTM на основе источника"""
-    if source in SMART_DEFAULTS:
-        defaults = SMART_DEFAULTS[source]
-        if 'utm_source_select' not in st.session_state or not st.session_state.utm_source_select:
-            st.session_state.utm_source_select = defaults.get('utm_source', '')
-        if 'utm_medium_select' not in st.session_state or not st.session_state.utm_medium_select:
-            st.session_state.utm_medium_select = defaults.get('utm_medium', '')
 
 # ============================================================
 # ИНИЦИАЛИЗАЦИЯ SESSION STATE
@@ -398,8 +387,8 @@ def render_button_field(label, field_number, options, state_key, disabled=False,
                 st.session_state[state_key] = option
                 st.rerun()
 
-def render_checkbox_field(label, field_number, options, state_key, disabled=False, columns=4):
-    """Рендерит поле с чекбоксами для множественного выбора + кнопка добавления"""
+def render_multiselect_field(label, field_number, options, state_key, disabled=False, columns=4):
+    """Рендерит поле с кнопками для множественного выбора (toggle) + кнопка добавления"""
     
     # Заголовок с кнопкой добавления
     col_header, col_add = st.columns([6, 1])
@@ -433,21 +422,71 @@ def render_checkbox_field(label, field_number, options, state_key, disabled=Fals
                 st.session_state[f"show_add_{state_key}"] = False
                 st.rerun()
     
-    # Рендерим чекбоксы
+    # Рендерим кнопки (toggle для множественного выбора)
     cols = st.columns(columns)
     current_values = st.session_state.get(state_key, [])
     
     for i, option in enumerate(options):
         with cols[i % columns]:
-            is_checked = option in current_values
-            if st.checkbox(option, value=is_checked, key=f"{state_key}_cb_{option}"):
-                if option not in current_values:
-                    current_values.append(option)
-                    st.session_state[state_key] = current_values
-            else:
+            # Если значение выбрано → primary, иначе secondary
+            button_type = "primary" if option in current_values else "secondary"
+            if st.button(option, key=f"{state_key}_toggle_{option}", type=button_type, use_container_width=True):
+                # Toggle: добавить если нет, убрать если есть
                 if option in current_values:
                     current_values.remove(option)
-                    st.session_state[state_key] = current_values
+                else:
+                    current_values.append(option)
+                st.session_state[state_key] = current_values
+                st.rerun()
+
+def render_dropdown_with_add(label, options, state_key, disabled=False):
+    """Рендерит dropdown с возможностью добавления нового значения"""
+    
+    col_label, col_add = st.columns([6, 1])
+    with col_label:
+        if disabled:
+            st.markdown(f'<p class="field-label field-label-disabled">{label} 🔒</p>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<p class="field-label">{label}</p>', unsafe_allow_html=True)
+    with col_add:
+        if not disabled:
+            if st.button("➕", key=f"add_btn_{state_key}", help="Добавить своё значение", use_container_width=True):
+                st.session_state[f"show_add_{state_key}"] = True
+    
+    # Поле для добавления нового значения
+    if st.session_state.get(f"show_add_{state_key}", False):
+        col_input, col_btn_add, col_btn_cancel = st.columns([4, 1, 1])
+        with col_input:
+            new_val = st.text_input("Новое значение:", key=f"new_input_{state_key}", placeholder="Введите значение...", label_visibility="collapsed")
+        with col_btn_add:
+            if st.button("✓", key=f"confirm_{state_key}", help="Добавить", use_container_width=True, type="primary"):
+                if new_val and new_val.strip():
+                    if new_val.strip() not in options:
+                        options.append(new_val.strip())
+                        st.session_state[state_key] = new_val.strip()
+                        st.session_state[f"show_add_{state_key}"] = False
+                        st.rerun()
+                    else:
+                        st.toast("Значение уже есть в списке", icon="⚠️")
+        with col_btn_cancel:
+            if st.button("✗", key=f"cancel_{state_key}", help="Отмена", use_container_width=True):
+                st.session_state[f"show_add_{state_key}"] = False
+                st.rerun()
+    
+    # Dropdown
+    current_value = st.session_state.get(state_key, "")
+    selected = st.selectbox(
+        label,
+        [""] + options,
+        key=f"{state_key}_dropdown",
+        index=0 if not current_value else (options.index(current_value) + 1 if current_value in options else 0),
+        disabled=disabled,
+        label_visibility="collapsed"
+    )
+    
+    if selected != current_value:
+        st.session_state[state_key] = selected
+        st.rerun()
 
 # ============================================================
 # STREAMLIT UI
@@ -510,10 +549,6 @@ current_client_geo = st.session_state.get('client_geo', '')
 current_targeting = st.session_state.get('targeting', '')
 current_goal = st.session_state.get('goal', '')
 
-# Применяем умные дефолты при выборе источника
-if current_source:
-    apply_smart_defaults(current_source)
-
 # Строим превью
 preview = build_preview(
     current_product, current_stream, current_expense, current_source,
@@ -542,7 +577,7 @@ render_button_field("Источник", "4", DEFAULT_STRICT_NAMING["Источн
 
 # 5. Тип кампании (множественный выбор)
 step5_disabled = not bool(current_source)
-render_checkbox_field("Тип кампании (можно несколько)", "5", DEFAULT_VARIABLE_NAMING["Тип кампании"], "campaign_types", disabled=step5_disabled, columns=4)
+render_multiselect_field("Тип кампании (можно несколько)", "5", DEFAULT_VARIABLE_NAMING["Тип кампании"], "campaign_types", disabled=step5_disabled, columns=4)
 
 # 6. Клиент/гео (все значения кнопками)
 step6_disabled = not bool(current_campaign_types)
@@ -621,31 +656,19 @@ else:
 
 st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
 
-# utm_content, utm_term, utm_vacancy (dropdown)
+# utm_content, utm_term, utm_vacancy (dropdown с добавлением)
 utm_other_disabled = not bool(current_utm_medium)
 
 col_utm1, col_utm2, col_utm3 = st.columns(3)
 
 with col_utm1:
-    if utm_other_disabled:
-        st.markdown('<p class="field-label field-label-disabled">utm_content 🔒</p>', unsafe_allow_html=True)
-    else:
-        st.markdown('<p class="field-label">utm_content</p>', unsafe_allow_html=True)
-    st.selectbox("Контент", [""] + DEFAULT_UTM_PARAMS["utm_content"], key="utm_content_select", disabled=utm_other_disabled, label_visibility="collapsed")
+    render_dropdown_with_add("utm_content", DEFAULT_UTM_PARAMS["utm_content"], "utm_content_select", disabled=utm_other_disabled)
 
 with col_utm2:
-    if utm_other_disabled:
-        st.markdown('<p class="field-label field-label-disabled">utm_term 🔒</p>', unsafe_allow_html=True)
-    else:
-        st.markdown('<p class="field-label">utm_term</p>', unsafe_allow_html=True)
-    st.selectbox("Термин", [""] + DEFAULT_UTM_PARAMS["utm_term"], key="utm_term_select", disabled=utm_other_disabled, label_visibility="collapsed")
+    render_dropdown_with_add("utm_term", DEFAULT_UTM_PARAMS["utm_term"], "utm_term_select", disabled=utm_other_disabled)
 
 with col_utm3:
-    if utm_other_disabled:
-        st.markdown('<p class="field-label field-label-disabled">utm_vacancy 🔒</p>', unsafe_allow_html=True)
-    else:
-        st.markdown('<p class="field-label">utm_vacancy</p>', unsafe_allow_html=True)
-    st.selectbox("Вакансия", [""] + DEFAULT_UTM_PARAMS["utm_vacancy"], key="utm_vacancy_select", disabled=utm_other_disabled, label_visibility="collapsed")
+    render_dropdown_with_add("utm_vacancy", DEFAULT_UTM_PARAMS["utm_vacancy"], "utm_vacancy_select", disabled=utm_other_disabled)
 
 st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
 
@@ -675,68 +698,78 @@ if current_utm_campaign:
     utm_parts.append(f"utm_campaign={current_utm_campaign}")
 if current_utm_content:
     utm_parts.append(f"utm_content={current_utm_content}")
-if current_utm_term:
-    utm_parts.append(f"utm_term={current_utm_term}")
-if current_utm_vacancy:
-    utm_parts.append(f"utm_vacancy={current_utm_vacancy}")
 
-utm_preview = ""
-if current_base_link and utm_parts:
-    separator = "&" if "?" in current_base_link else "?"
-    utm_preview = f"{current_base_link}{separator}{'&'.join(utm_parts)}"
-elif current_base_link:
-    utm_preview = current_base_link
-elif utm_parts:
-    utm_preview = f"?{'&'.join(utm_parts)}"
+# ============================================================
+# SIDEBAR: ПРЕВЬЮ РЕЗУЛЬТАТОВ
+# ============================================================
 
-utm_display = utm_preview if utm_preview else "Введите ссылку и UTM параметры..."
-utm_color = "#64B5F6" if utm_preview else "#888"
-
-# Экранирование для JS
-escaped_naming = preview.replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"').replace('\n', '').replace('\r', '') if preview else ""
-escaped_utm = utm_preview.replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"').replace('\n', '').replace('\r', '') if utm_preview else ""
-
-# Фиксированная панель (CSS)
-st.markdown(f'''
-<div class="fixed-panel">
-<div class="panel-inner">
-<div class="panel-row">
-<span class="panel-label">Нейминг:</span>
-<code class="panel-code" style="color:{naming_color};">{preview_display}</code>
-<div class="btn-placeholder" id="btn-naming-slot"></div>
-</div>
-<div class="panel-row">
-<span class="panel-label">UTM:</span>
-<code class="panel-code" style="color:{utm_color};">{utm_display}</code>
-<div class="btn-placeholder" id="btn-utm-slot"></div>
-</div>
-</div>
-</div>
-''', unsafe_allow_html=True)
-
-# Кнопки копирования
 import streamlit.components.v1 as components
 
-st.markdown("### 📋 Копирование результатов")
-col_btn1, col_btn2 = st.columns(2)
-
-with col_btn1:
+with st.sidebar:
+    st.markdown("### 📋 Результат")
+    
+    # Формируем превью UTM ссылки
+    current_base_link = st.session_state.get('base_link', '')
+    current_utm_source = st.session_state.get('utm_source_select', '')
+    current_utm_medium = st.session_state.get('utm_medium_select', '')
+    current_utm_campaign = st.session_state.get('utm_campaign', '') or preview
+    current_utm_content = st.session_state.get('utm_content_select', '')
+    current_utm_term = st.session_state.get('utm_term_select', '')
+    current_utm_vacancy = st.session_state.get('utm_vacancy_select', '')
+    
+    # Собираем UTM строку
+    utm_parts = []
+    if current_utm_source:
+        utm_parts.append(f"utm_source={current_utm_source}")
+    if current_utm_medium:
+        utm_parts.append(f"utm_medium={current_utm_medium}")
+    if current_utm_campaign:
+        utm_parts.append(f"utm_campaign={current_utm_campaign}")
+    if current_utm_content:
+        utm_parts.append(f"utm_content={current_utm_content}")
+    if current_utm_term:
+        utm_parts.append(f"utm_term={current_utm_term}")
+    if current_utm_vacancy:
+        utm_parts.append(f"utm_vacancy={current_utm_vacancy}")
+    
+    utm_preview = ""
+    if current_base_link and utm_parts:
+        separator = "&" if "?" in current_base_link else "?"
+        utm_preview = f"{current_base_link}{separator}{'&'.join(utm_parts)}"
+    elif current_base_link:
+        utm_preview = current_base_link
+    elif utm_parts:
+        utm_preview = f"?{'&'.join(utm_parts)}"
+    
+    # Отображение
+    preview_display = preview if preview else "Заполните поля..."
+    utm_display = utm_preview if utm_preview else "Введите ссылку и UTM..."
+    
+    # Нейминг
+    st.markdown("**Нейминг:**")
+    st.code(preview_display, language=None)
+    
     if preview:
-        btn_html = f'''
+        # Экранирование для JS
+        escaped_naming = preview.replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"').replace('\n', '').replace('\r', '')
+        
+        # Кнопка копирования нейминга
+        btn_html_naming = f'''
         <html><head><style>
         * {{ margin: 0; padding: 0; }}
         body {{ background: transparent; }}
         .copy-btn {{
             width: 100%;
-            padding: 12px 20px;
-            border-radius: 8px;
+            padding: 10px 16px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
             border: none;
             color: #fff;
             background: #4CAF50;
             transition: all 0.2s;
+            margin-bottom: 10px;
         }}
         .copy-btn:hover {{ background: #45a049; transform: scale(1.02); }}
         </style></head><body>
@@ -759,22 +792,29 @@ with col_btn1:
         ">📋 Копировать нейминг</button>
         </body></html>
         '''
-        components.html(btn_html, height=50)
-    else:
-        st.button("📋 Копировать нейминг", disabled=True, use_container_width=True)
-
-with col_btn2:
+        components.html(btn_html_naming, height=50)
+    
+    st.markdown("---")
+    
+    # UTM
+    st.markdown("**UTM ссылка:**")
+    st.code(utm_display, language=None)
+    
     if utm_preview:
-        btn_html = f'''
+        # Экранирование для JS
+        escaped_utm = utm_preview.replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"').replace('\n', '').replace('\r', '')
+        
+        # Кнопка копирования UTM
+        btn_html_utm = f'''
         <html><head><style>
         * {{ margin: 0; padding: 0; }}
         body {{ background: transparent; }}
         .copy-btn {{
             width: 100%;
-            padding: 12px 20px;
-            border-radius: 8px;
+            padding: 10px 16px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
             border: none;
             color: #fff;
@@ -802,6 +842,4 @@ with col_btn2:
         ">📋 Копировать UTM</button>
         </body></html>
         '''
-        components.html(btn_html, height=50)
-    else:
-        st.button("📋 Копировать UTM", disabled=True, use_container_width=True)
+        components.html(btn_html_utm, height=50)
