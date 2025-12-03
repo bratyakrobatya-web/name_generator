@@ -31,7 +31,7 @@ h1, h2, h3, h4, h5, h6 {
     font-family: 'Golos Text', sans-serif;
 }
 
-.stSelectbox label, .stMultiSelect label, .stTextInput label, .stRadio label {
+.stSelectbox label, .stMultiSelect label, .stTextInput label, .stRadio label, .stCheckbox label {
     font-family: 'Golos Text', sans-serif;
 }
 
@@ -41,40 +41,87 @@ code, pre, .stCode {
 
 /* Компактные отступы */
 .block-container {
-    padding-top: 2rem;
+    padding-top: 1.5rem;
     padding-bottom: 8rem;
 }
 
-/* Уменьшаем отступы между элементами */
+/* КОМПАКТНЫЕ КНОПКИ */
 .stButton button {
-    margin: 2px;
-    padding: 8px 16px;
-    font-size: 14px;
+    margin: 3px;
+    padding: 6px 12px;
+    font-size: 13px;
+    min-height: 36px;
+    max-height: 36px;
 }
 
-/* Стили для кнопок-чипсов */
-.chip-button {
-    display: inline-block;
-    margin: 4px;
+/* Компактные чекбоксы */
+.stCheckbox {
+    margin: 3px;
 }
 
-/* Секции полей */
+.stCheckbox > label {
+    font-size: 13px;
+    padding: 4px 8px;
+}
+
+/* Секции полей с рамкой */
 .field-section {
-    margin-bottom: 1.5rem;
-    padding: 1rem;
     background: #f8f9fa;
+    padding: 10px 12px;
     border-radius: 8px;
+    margin-bottom: 10px;
+    border-left: 4px solid #1E5AA8;
 }
 
+/* Заголовки полей */
 .field-label {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 8px;
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 10px;
     color: #1E5AA8;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .field-label-disabled {
     color: #9E9E9E;
+}
+
+/* Нумерация в кружках */
+.field-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #1E5AA8;
+    color: white;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.field-number-disabled {
+    background: #9E9E9E;
+}
+
+/* Прогресс-бар */
+.progress-container {
+    width: 100%;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 6px;
+    background: linear-gradient(90deg, #4CAF50, #2196F3);
+    border-radius: 3px;
+    transition: width 0.3s ease;
 }
 
 /* Фиксированная панель */
@@ -128,6 +175,15 @@ code, pre, .stCode {
 .btn-placeholder {
     min-width: 160px;
     height: 52px;
+}
+
+/* Убираем лишние отступы */
+.element-container {
+    margin-bottom: 0 !important;
+}
+
+div[data-testid="stVerticalBlock"] > div {
+    gap: 0.3rem !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -283,14 +339,55 @@ if 'goal' not in st.session_state:
 # UI: ФУНКЦИИ ДЛЯ ПОЛЕЙ
 # ============================================================
 
-def render_button_field(label, options, state_key, disabled=False, columns=4):
-    """Рендерит поле с кнопками в виде сетки"""
-    st.markdown(f'<p class="field-label {"field-label-disabled" if disabled else ""}">{label}</p>', unsafe_allow_html=True)
+def render_field_header(label, field_number, disabled=False):
+    """Рендерит заголовок поля с нумерацией"""
+    number_class = "field-number-disabled" if disabled else "field-number"
+    label_class = "field-label-disabled" if disabled else "field-label"
+    lock_icon = " 🔒" if disabled else ""
+    
+    st.markdown(f'''
+    <div class="{label_class}">
+        <span class="{number_class}">{field_number}</span>
+        <span>{label}{lock_icon}</span>
+    </div>
+    ''', unsafe_allow_html=True)
+
+def render_button_field(label, field_number, options, state_key, disabled=False, columns=4):
+    """Рендерит поле с кнопками в виде сетки + кнопка добавления"""
+    
+    # Заголовок с кнопкой добавления
+    col_header, col_add = st.columns([6, 1])
+    with col_header:
+        render_field_header(label, field_number, disabled)
+    with col_add:
+        if not disabled:
+            if st.button("➕", key=f"add_btn_{state_key}", help="Добавить своё значение", use_container_width=True):
+                st.session_state[f"show_add_{state_key}"] = True
     
     if disabled:
         st.info("🔒 Заполните предыдущее поле")
         return
     
+    # Поле для добавления нового значения
+    if st.session_state.get(f"show_add_{state_key}", False):
+        col_input, col_btn_add, col_btn_cancel = st.columns([4, 1, 1])
+        with col_input:
+            new_val = st.text_input("Новое значение:", key=f"new_input_{state_key}", placeholder="Введите значение...", label_visibility="collapsed")
+        with col_btn_add:
+            if st.button("✓", key=f"confirm_{state_key}", help="Добавить", use_container_width=True, type="primary"):
+                if new_val and new_val.strip():
+                    if new_val.strip() not in options:
+                        options.append(new_val.strip())
+                        st.session_state[f"show_add_{state_key}"] = False
+                        st.rerun()
+                    else:
+                        st.toast("Значение уже есть в списке", icon="⚠️")
+        with col_btn_cancel:
+            if st.button("✗", key=f"cancel_{state_key}", help="Отмена", use_container_width=True):
+                st.session_state[f"show_add_{state_key}"] = False
+                st.rerun()
+    
+    # Рендерим кнопки
     cols = st.columns(columns)
     current_value = st.session_state.get(state_key, "")
     
@@ -301,14 +398,42 @@ def render_button_field(label, options, state_key, disabled=False, columns=4):
                 st.session_state[state_key] = option
                 st.rerun()
 
-def render_checkbox_field(label, options, state_key, disabled=False, columns=4):
-    """Рендерит поле с чекбоксами для множественного выбора"""
-    st.markdown(f'<p class="field-label {"field-label-disabled" if disabled else ""}">{label}</p>', unsafe_allow_html=True)
+def render_checkbox_field(label, field_number, options, state_key, disabled=False, columns=4):
+    """Рендерит поле с чекбоксами для множественного выбора + кнопка добавления"""
+    
+    # Заголовок с кнопкой добавления
+    col_header, col_add = st.columns([6, 1])
+    with col_header:
+        render_field_header(label, field_number, disabled)
+    with col_add:
+        if not disabled:
+            if st.button("➕", key=f"add_btn_{state_key}", help="Добавить своё значение", use_container_width=True):
+                st.session_state[f"show_add_{state_key}"] = True
     
     if disabled:
         st.info("🔒 Заполните предыдущее поле")
         return
     
+    # Поле для добавления нового значения
+    if st.session_state.get(f"show_add_{state_key}", False):
+        col_input, col_btn_add, col_btn_cancel = st.columns([4, 1, 1])
+        with col_input:
+            new_val = st.text_input("Новое значение:", key=f"new_input_{state_key}", placeholder="Введите значение...", label_visibility="collapsed")
+        with col_btn_add:
+            if st.button("✓", key=f"confirm_{state_key}", help="Добавить", use_container_width=True, type="primary"):
+                if new_val and new_val.strip():
+                    if new_val.strip() not in options:
+                        options.append(new_val.strip())
+                        st.session_state[f"show_add_{state_key}"] = False
+                        st.rerun()
+                    else:
+                        st.toast("Значение уже есть в списке", icon="⚠️")
+        with col_btn_cancel:
+            if st.button("✗", key=f"cancel_{state_key}", help="Отмена", use_container_width=True):
+                st.session_state[f"show_add_{state_key}"] = False
+                st.rerun()
+    
+    # Рендерим чекбоксы
     cols = st.columns(columns)
     current_values = st.session_state.get(state_key, [])
     
@@ -324,39 +449,6 @@ def render_checkbox_field(label, options, state_key, disabled=False, columns=4):
                     current_values.remove(option)
                     st.session_state[state_key] = current_values
 
-def render_favorite_field(label, all_options, favorites, state_key, disabled=False):
-    """Рендерит поле с избранными кнопками + dropdown для остальных"""
-    st.markdown(f'<p class="field-label {"field-label-disabled" if disabled else ""}">{label}</p>', unsafe_allow_html=True)
-    
-    if disabled:
-        st.info("🔒 Заполните предыдущее поле")
-        return
-    
-    # Избранные кнопки
-    st.markdown("⭐ **Избранное:**")
-    fav_cols = st.columns(len(favorites))
-    current_value = st.session_state.get(state_key, "")
-    
-    for i, fav in enumerate(favorites):
-        with fav_cols[i]:
-            button_type = "primary" if fav == current_value else "secondary"
-            if st.button(fav, key=f"{state_key}_fav_{fav}", type=button_type, use_container_width=True):
-                st.session_state[state_key] = fav
-                st.rerun()
-    
-    # Dropdown для остальных
-    other_options = [opt for opt in all_options if opt not in favorites]
-    selected = st.selectbox(
-        "Все остальные:",
-        [""] + other_options,
-        key=f"{state_key}_dropdown",
-        index=0 if not current_value or current_value in favorites else other_options.index(current_value) + 1 if current_value in other_options else 0
-    )
-    
-    if selected and selected != current_value:
-        st.session_state[state_key] = selected
-        st.rerun()
-
 # ============================================================
 # STREAMLIT UI
 # ============================================================
@@ -370,7 +462,37 @@ with col_reset:
         clear_all()
         st.rerun()
 
-st.divider()
+# Прогресс-бар
+current_product = st.session_state.get('product', '')
+current_stream = st.session_state.get('stream', '')
+current_expense = st.session_state.get('expense', '')
+current_source = st.session_state.get('source', '')
+current_campaign_types = st.session_state.get('campaign_types', [])
+current_client_geo = st.session_state.get('client_geo', '')
+current_targeting = st.session_state.get('targeting', '')
+current_goal = st.session_state.get('goal', '')
+
+completed_steps = sum([
+    bool(current_product),
+    bool(current_stream),
+    bool(current_expense),
+    bool(current_source),
+    bool(current_campaign_types),
+    bool(current_client_geo),
+    bool(current_targeting),
+    bool(current_goal)
+])
+total_steps = 8
+progress_percent = (completed_steps / total_steps) * 100
+
+st.markdown(f'''
+<div class="progress-container">
+    <div class="progress-bar" style="width: {progress_percent}%"></div>
+</div>
+<p style="text-align: center; color: #666; font-size: 13px; margin-top: -10px; margin-bottom: 15px;">
+    {completed_steps} из {total_steps} завершено
+</p>
+''', unsafe_allow_html=True)
 
 # ============================================================
 # ЭТАП 1: НЕЙМИНГ
@@ -404,51 +526,37 @@ if preview:
 # ПОЛЯ НЕЙМИНГА
 
 # 1. Продукт (всегда активен)
-render_button_field("1. Продукт", DEFAULT_STRICT_NAMING["Продукт"], "product", columns=2)
-
-st.markdown("---")
+render_button_field("Продукт", "1", DEFAULT_STRICT_NAMING["Продукт"], "product", columns=2)
 
 # 2. Стрим
 step2_disabled = not bool(current_product)
-render_button_field("2. Стрим", DEFAULT_STRICT_NAMING["Стрим"], "stream", disabled=step2_disabled, columns=4)
-
-st.markdown("---")
+render_button_field("Стрим", "2", DEFAULT_STRICT_NAMING["Стрим"], "stream", disabled=step2_disabled, columns=4)
 
 # 3. Статья расхода
 step3_disabled = not bool(current_stream)
-render_button_field("3. Статья расхода", DEFAULT_STRICT_NAMING["Статья расхода"], "expense", disabled=step3_disabled, columns=5)
-
-st.markdown("---")
+render_button_field("Статья расхода", "3", DEFAULT_STRICT_NAMING["Статья расхода"], "expense", disabled=step3_disabled, columns=5)
 
 # 4. Источник
 step4_disabled = not bool(current_expense)
-render_button_field("4. Источник", DEFAULT_STRICT_NAMING["Источник"], "source", disabled=step4_disabled, columns=4)
-
-st.markdown("---")
+render_button_field("Источник", "4", DEFAULT_STRICT_NAMING["Источник"], "source", disabled=step4_disabled, columns=4)
 
 # 5. Тип кампании (множественный выбор)
 step5_disabled = not bool(current_source)
-render_checkbox_field("5. Тип кампании (можно несколько)", DEFAULT_VARIABLE_NAMING["Тип кампании"], "campaign_types", disabled=step5_disabled, columns=4)
+render_checkbox_field("Тип кампании (можно несколько)", "5", DEFAULT_VARIABLE_NAMING["Тип кампании"], "campaign_types", disabled=step5_disabled, columns=4)
 
-st.markdown("---")
-
-# 6. Клиент/гео (с избранным)
+# 6. Клиент/гео (все значения кнопками)
 step6_disabled = not bool(current_campaign_types)
-render_favorite_field("6. Клиент/профиль/гео", DEFAULT_VARIABLE_NAMING["Клиент/гео"], FAVORITES["Клиент/гео"], "client_geo", disabled=step6_disabled)
+render_button_field("Клиент/профиль/гео", "6", DEFAULT_VARIABLE_NAMING["Клиент/гео"], "client_geo", disabled=step6_disabled, columns=5)
 
-st.markdown("---")
-
-# 7. Таргетинг (с избранным)
+# 7. Таргетинг (все значения кнопками - 5 колонок для компактности)
 step7_disabled = not bool(current_client_geo)
-render_favorite_field("7. Таргетинг", DEFAULT_VARIABLE_NAMING["Таргетинг"], FAVORITES["Таргетинг"], "targeting", disabled=step7_disabled)
-
-st.markdown("---")
+render_button_field("Таргетинг", "7", DEFAULT_VARIABLE_NAMING["Таргетинг"], "targeting", disabled=step7_disabled, columns=5)
 
 # 8. Цель
 step8_disabled = not bool(current_targeting)
-render_button_field("8. Цель", DEFAULT_VARIABLE_NAMING["Цель"], "goal", disabled=step8_disabled, columns=4)
+render_button_field("Цель", "8", DEFAULT_VARIABLE_NAMING["Цель"], "goal", disabled=step8_disabled, columns=4)
 
-st.divider()
+st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
 
 # ============================================================
 # ЭТАП 2: UTM
@@ -456,45 +564,50 @@ st.divider()
 
 st.header("🎯 Этап 2: UTM ссылка")
 
-# Базовая ссылка
-base_link = st.text_input("🔗 Базовая ссылка", 
-                          placeholder="https://expert.hh.ru/webinar/...",
-                          key="base_link")
+# Базовая ссылка с акцентом
+st.markdown("### 🔗 Базовая ссылка")
+st.info("👇 **Вставьте сюда URL страницы** (должна начинаться с `https://`)")
 
-if base_link and not validate_url(base_link):
-    st.warning("⚠️ Ссылка должна начинаться с http:// или https://")
+base_link = st.text_input(
+    "Ссылка", 
+    placeholder="https://expert.hh.ru/webinar/kobrending",
+    key="base_link",
+    help="Пример: https://expert.hh.ru/webinar/kobrending",
+    label_visibility="collapsed"
+)
+
+# Валидация с подсветкой
+if base_link:
+    if validate_url(base_link):
+        st.success("✓ Ссылка корректна")
+    else:
+        st.error("❌ Ссылка должна начинаться с http:// или https://")
+
+st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 
 # Проверка готовности нейминга
 naming_ready = bool(st.session_state.campaign_name)
 
+st.subheader("UTM параметры")
+
 if not naming_ready:
     st.info("⬆️ Сначала сгенерируйте нейминг кампании")
 
-# UTM параметры
-st.subheader("UTM параметры")
-
 # utm_source
 utm_source_disabled = not naming_ready
-render_button_field("utm_source", DEFAULT_UTM_PARAMS["utm_source"], "utm_source_select", disabled=utm_source_disabled, columns=4)
-
-st.markdown("---")
+render_button_field("utm_source", "📍", DEFAULT_UTM_PARAMS["utm_source"], "utm_source_select", disabled=utm_source_disabled, columns=4)
 
 # utm_medium
 current_utm_source = st.session_state.get('utm_source_select', '')
 utm_medium_disabled = not bool(current_utm_source)
-render_button_field("utm_medium", DEFAULT_UTM_PARAMS["utm_medium"], "utm_medium_select", disabled=utm_medium_disabled, columns=3)
-
-st.markdown("---")
+render_button_field("utm_medium", "📊", DEFAULT_UTM_PARAMS["utm_medium"], "utm_medium_select", disabled=utm_medium_disabled, columns=3)
 
 # utm_campaign (автозаполнение)
 current_utm_medium = st.session_state.get('utm_medium_select', '')
 utm_campaign_disabled = not bool(current_utm_medium)
 
-if utm_campaign_disabled:
-    st.markdown('<p class="field-label field-label-disabled">utm_campaign (авто) 🔒</p>', unsafe_allow_html=True)
-    st.info("🔒 Заполните utm_medium")
-else:
-    st.markdown('<p class="field-label">utm_campaign <span style="color: #888;">(автозаполнение)</span></p>', unsafe_allow_html=True)
+if not utm_campaign_disabled:
+    st.markdown('<div class="field-label"><span class="field-number">📝</span><span>utm_campaign <span style="color: #888; font-weight: 400;">(автозаполнение)</span></span></div>', unsafe_allow_html=True)
     utm_campaign = st.text_input(
         "Кампания", 
         value=st.session_state.campaign_name,
@@ -502,8 +615,11 @@ else:
         disabled=utm_campaign_disabled,
         label_visibility="collapsed"
     )
+else:
+    st.markdown('<div class="field-label field-label-disabled"><span class="field-number field-number-disabled">📝</span><span>utm_campaign (автозаполнение) 🔒</span></div>', unsafe_allow_html=True)
+    st.info("🔒 Заполните utm_medium")
 
-st.markdown("---")
+st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
 
 # utm_content, utm_term, utm_vacancy (dropdown)
 utm_other_disabled = not bool(current_utm_medium)
@@ -531,7 +647,7 @@ with col_utm3:
         st.markdown('<p class="field-label">utm_vacancy</p>', unsafe_allow_html=True)
     st.selectbox("Вакансия", [""] + DEFAULT_UTM_PARAMS["utm_vacancy"], key="utm_vacancy_select", disabled=utm_other_disabled, label_visibility="collapsed")
 
-st.divider()
+st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
 
 # Отступ для фиксированной панели
 st.markdown("<div style='height: 180px;'></div>", unsafe_allow_html=True)
