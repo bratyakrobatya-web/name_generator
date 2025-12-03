@@ -581,19 +581,44 @@ st.markdown('''
 </style>
 ''', unsafe_allow_html=True)
 
-# Формируем кнопки
+# Формируем кнопки с fallback методом копирования
+copy_script = '''
+<script>
+function copyText(text, btn) {
+    var textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    textarea.style.top = '0';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try {
+        document.execCommand('copy');
+        btn.innerText = '✓ Скопировано';
+        setTimeout(function() { btn.innerText = '📋 Копировать'; }, 1500);
+    } catch (err) {
+        btn.innerText = '✗ Ошибка';
+        setTimeout(function() { btn.innerText = '📋 Копировать'; }, 1500);
+    }
+    document.body.removeChild(textarea);
+}
+</script>
+'''
+
 if preview:
-    btn_naming = f'''<button class="copy-btn copy-btn-green" onclick="navigator.clipboard.writeText('{escaped_naming}');this.innerText='✓ Скопировано';setTimeout(()=>this.innerText='📋 Копировать',1500)">📋 Копировать</button>'''
+    btn_naming = f'''<button class="copy-btn copy-btn-green" onclick="copyText('{escaped_naming}', this)">📋 Копировать</button>'''
 else:
     btn_naming = '''<div class="copy-btn copy-btn-disabled">📋 Копировать</div>'''
 
 if utm_preview:
-    btn_utm = f'''<button class="copy-btn copy-btn-blue" onclick="navigator.clipboard.writeText('{escaped_utm}');this.innerText='✓ Скопировано';setTimeout(()=>this.innerText='📋 Копировать',1500)">📋 Копировать</button>'''
+    btn_utm = f'''<button class="copy-btn copy-btn-blue" onclick="copyText('{escaped_utm}', this)">📋 Копировать</button>'''
 else:
     btn_utm = '''<div class="copy-btn copy-btn-disabled">📋 Копировать</div>'''
 
 # HTML панель
 st.markdown(f'''
+{copy_script}
 <div class="fixed-panel">
 <div class="panel-inner">
 <div class="panel-row">
