@@ -107,29 +107,31 @@ code, pre, .stCode {
 
 /* СТИЛИ САЙДБАРА */
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+    background: linear-gradient(180deg, #2d3748 0%, #1a202c 100%);
 }
 
 [data-testid="stSidebar"] .stMarkdown h3 {
     color: #ffffff;
     font-weight: 700;
-    font-size: 20px;
+    font-size: 18px;
+    margin-bottom: 10px;
 }
 
 [data-testid="stSidebar"] .stMarkdown p,
 [data-testid="stSidebar"] .stMarkdown strong {
-    color: #cccccc;
-    font-size: 14px;
+    color: #e2e8f0;
+    font-size: 13px;
     font-weight: 600;
+    margin-bottom: 5px;
 }
 
-/* Код блоки в сайдбаре с красной окантовкой */
+/* Простые темные блоки для текста */
 [data-testid="stSidebar"] code {
-    background: #0d0d1a !important;
-    border: 2px solid #ff3b3b !important;
-    border-radius: 6px !important;
-    padding: 12px !important;
-    color: #00ff88 !important;
+    background: #1a202c !important;
+    border: none !important;
+    border-radius: 4px !important;
+    padding: 10px 12px !important;
+    color: #48bb78 !important; /* Зеленый для нейминга */
     font-family: 'Courier New', monospace !important;
     font-size: 13px !important;
     display: block !important;
@@ -137,12 +139,14 @@ code, pre, .stCode {
     word-wrap: break-word !important;
     overflow-wrap: break-word !important;
     max-width: 100% !important;
+    line-height: 1.4 !important;
 }
 
-/* Убираем белый контейнер вокруг code в сайдбаре */
+/* Убираем белые контейнеры */
 [data-testid="stSidebar"] [data-testid="stCodeBlock"] {
     background: transparent !important;
     padding: 0 !important;
+    margin: 0 !important;
 }
 
 [data-testid="stSidebar"] .stCodeBlock {
@@ -150,21 +154,22 @@ code, pre, .stCode {
 }
 
 [data-testid="stSidebar"] pre {
-    background: #0d0d1a !important;
-    border: 2px solid #ff3b3b !important;
+    background: transparent !important;
+    border: none !important;
     margin: 0 !important;
     padding: 0 !important;
 }
 
-/* Красный текст для UTM ссылки */
+/* Зеленый текст для UTM (светлее чем нейминг) */
 [data-testid="stSidebar"] .utm-code code {
-    color: #ff6b6b !important;
+    color: #68d391 !important;
 }
 
-/* Разделитель в сайдбаре */
+/* Разделитель */
 [data-testid="stSidebar"] hr {
-    border-color: #333 !important;
+    border-color: #4a5568 !important;
     margin: 15px 0 !important;
+    opacity: 0.3;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -649,7 +654,7 @@ with st.sidebar:
     preview_display = preview if preview else "Заполните поля..."
     utm_display = utm_preview if utm_preview else "Введите ссылку и UTM..."
     
-    # Нейминг (зеленый)
+    # Нейминг
     st.markdown("**Нейминг:**")
     st.code(preview_display, language=None)
     
@@ -669,16 +674,17 @@ with st.sidebar:
             font-weight: 600;
             border: none;
             color: #fff;
-            background: #4CAF50;
+            background: #48bb78;
             transition: all 0.2s;
-            margin-bottom: 10px;
+            margin-top: 8px;
+            margin-bottom: 15px;
         }}
-        .copy-btn:hover {{ background: #45a049; transform: scale(1.02); }}
+        .copy-btn:hover {{ background: #38a169; transform: scale(1.02); }}
         </style></head><body>
         <button class="copy-btn" onclick="
             navigator.clipboard.writeText('{escaped_naming}').then(function() {{
                 document.querySelector('.copy-btn').innerText = '✓ Скопировано!';
-                setTimeout(function() {{ document.querySelector('.copy-btn').innerText = '📋 Копировать нейминг'; }}, 1500);
+                setTimeout(function() {{ document.querySelector('.copy-btn').innerText = '📋 Копировать'; }}, 1500);
             }}).catch(function() {{
                 var ta = document.createElement('textarea');
                 ta.value = '{escaped_naming}';
@@ -689,20 +695,16 @@ with st.sidebar:
                 document.execCommand('copy');
                 document.body.removeChild(ta);
                 document.querySelector('.copy-btn').innerText = '✓ Скопировано!';
-                setTimeout(function() {{ document.querySelector('.copy-btn').innerText = '📋 Копировать нейминг'; }}, 1500);
+                setTimeout(function() {{ document.querySelector('.copy-btn').innerText = '📋 Копировать'; }}, 1500);
             }});
-        ">📋 Копировать нейминг</button>
+        ">📋 Копировать</button>
         </body></html>
         '''
         components.html(btn_html_naming, height=50)
     
-    st.markdown("---")
-    
-    # UTM (красный)
-    st.markdown("**UTM ссылка:**")
-    st.markdown('<div class="utm-code">', unsafe_allow_html=True)
+    # UTM
+    st.markdown("**UTM:**")
     st.code(utm_display, language=None)
-    st.markdown('</div>', unsafe_allow_html=True)
     
     if utm_preview:
         escaped_utm = utm_preview.replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"').replace('\n', '').replace('\r', '')
@@ -720,15 +722,16 @@ with st.sidebar:
             font-weight: 600;
             border: none;
             color: #fff;
-            background: #2196F3;
+            background: #4299e1;
             transition: all 0.2s;
+            margin-top: 8px;
         }}
-        .copy-btn:hover {{ background: #1976D2; transform: scale(1.02); }}
+        .copy-btn:hover {{ background: #3182ce; transform: scale(1.02); }}
         </style></head><body>
         <button class="copy-btn" onclick="
             navigator.clipboard.writeText('{escaped_utm}').then(function() {{
                 document.querySelector('.copy-btn').innerText = '✓ Скопировано!';
-                setTimeout(function() {{ document.querySelector('.copy-btn').innerText = '📋 Копировать UTM'; }}, 1500);
+                setTimeout(function() {{ document.querySelector('.copy-btn').innerText = '📋 Копировать'; }}, 1500);
             }}).catch(function() {{
                 var ta = document.createElement('textarea');
                 ta.value = '{escaped_utm}';
@@ -739,9 +742,9 @@ with st.sidebar:
                 document.execCommand('copy');
                 document.body.removeChild(ta);
                 document.querySelector('.copy-btn').innerText = '✓ Скопировано!';
-                setTimeout(function() {{ document.querySelector('.copy-btn').innerText = '📋 Копировать UTM'; }}, 1500);
+                setTimeout(function() {{ document.querySelector('.copy-btn').innerText = '📋 Копировать'; }}, 1500);
             }});
-        ">📋 Копировать UTM</button>
+        ">📋 Копировать</button>
         </body></html>
         '''
         components.html(btn_html_utm, height=50)
