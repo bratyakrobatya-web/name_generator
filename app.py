@@ -122,7 +122,7 @@ code, pre, .stCode {
 
 /* СТИЛИ САЙДБАРА */
 [data-testid="stSidebar"] {
-    background: #ffffff !important;
+    background: #f7fafc !important;
 }
 
 [data-testid="stSidebar"] .stMarkdown h3 {
@@ -140,9 +140,9 @@ code, pre, .stCode {
     margin-bottom: 5px;
 }
 
-/* Простые темные блоки для текста */
+/* Простые серые блоки для текста */
 [data-testid="stSidebar"] code {
-    background: #1a202c !important;
+    background: #e2e8f0 !important;
     border: none !important;
     border-radius: 4px !important;
     padding: 10px 12px !important;
@@ -155,7 +155,7 @@ code, pre, .stCode {
     overflow-wrap: break-word !important;
     max-width: 100% !important;
     line-height: 1.4 !important;
-    font-weight: 600 !important;
+    font-weight: 400 !important; /* Обычный шрифт */
 }
 
 /* Убираем белые контейнеры */
@@ -176,14 +176,14 @@ code, pre, .stCode {
     padding: 0 !important;
 }
 
-/* Яркий зеленый для UTM (светлее чем нейминг) */
+/* Фиолетовый текст для UTM */
 [data-testid="stSidebar"] .utm-code code {
-    color: #4ade80 !important;
+    color: #9333ea !important;
 }
 
 /* Разделитель */
 [data-testid="stSidebar"] hr {
-    border-color: #e2e8f0 !important;
+    border-color: #cbd5e0 !important;
     margin: 15px 0 !important;
     opacity: 0.5;
 }
@@ -684,9 +684,9 @@ import streamlit.components.v1 as components
 with st.sidebar:
     # Логотип HH
     st.markdown("""
-    <div style="text-align: center; padding: 15px 0 25px 0;">
+    <div style="text-align: center; padding: 20px 0 30px 0;">
         <img src="https://raw.githubusercontent.com/bratyakrobatya-web/name_generator/main/min-hh-red.png" 
-             style="width: 120px; height: auto;" 
+             style="width: 240px; height: auto;" 
              alt="HH Logo">
     </div>
     """, unsafe_allow_html=True)
