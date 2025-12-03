@@ -124,57 +124,49 @@ code, pre, .stCode {
     transition: width 0.3s ease;
 }
 
-/* Фиксированная панель */
-.fixed-panel {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(135deg, #1a1a2e, #16213e);
-    padding: 18px 30px;
-    box-shadow: 0 -6px 30px rgba(0,0,0,0.4);
-    z-index: 9999;
-    border-top: 4px solid #4CAF50;
+/* СТИЛИ САЙДБАРА */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
 }
 
-.panel-inner {
-    max-width: 1600px;
-    margin: 0 auto;
+[data-testid="stSidebar"] .stMarkdown h3 {
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 20px;
 }
 
-.panel-row {
-    display: flex;
-    align-items: center;
-    margin-bottom: 12px;
-    gap: 15px;
-}
-
-.panel-row:last-child {
-    margin-bottom: 0;
-}
-
-.panel-label {
-    color: #ccc;
+[data-testid="stSidebar"] .stMarkdown p,
+[data-testid="stSidebar"] .stMarkdown strong {
+    color: #cccccc;
     font-size: 14px;
-    min-width: 80px;
     font-weight: 600;
 }
 
-.panel-code {
-    background: #2d2d44;
-    padding: 12px 18px;
-    border-radius: 6px;
-    font-size: 15px;
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-family: 'Courier New', monospace;
+/* Код блоки в сайдбаре с красной окантовкой */
+[data-testid="stSidebar"] code {
+    background: #0d0d1a !important;
+    border: 2px solid #ff3b3b !important;
+    border-radius: 6px !important;
+    padding: 12px !important;
+    color: #00ff88 !important; /* Зеленый для нейминга по умолчанию */
+    font-family: 'Courier New', monospace !important;
+    font-size: 13px !important;
+    display: block !important;
+    white-space: pre-wrap !important; /* Переносы строк */
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    max-width: 100% !important;
 }
 
-.btn-placeholder {
-    min-width: 160px;
-    height: 52px;
+/* Красный текст для UTM ссылки - добавим класс */
+[data-testid="stSidebar"] .utm-code code {
+    color: #ff6b6b !important; /* Красный для UTM */
+}
+
+/* Разделитель в сайдбаре */
+[data-testid="stSidebar"] hr {
+    border-color: #333 !important;
+    margin: 15px 0 !important;
 }
 
 /* Убираем лишние отступы */
@@ -745,7 +737,7 @@ with st.sidebar:
     preview_display = preview if preview else "Заполните поля..."
     utm_display = utm_preview if utm_preview else "Введите ссылку и UTM..."
     
-    # Нейминг
+    # Нейминг (зеленый текст)
     st.markdown("**Нейминг:**")
     st.code(preview_display, language=None)
     
@@ -796,9 +788,11 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # UTM
+    # UTM (красный текст) - используем HTML для применения класса
     st.markdown("**UTM ссылка:**")
+    st.markdown(f'<div class="utm-code">', unsafe_allow_html=True)
     st.code(utm_display, language=None)
+    st.markdown('</div>', unsafe_allow_html=True)
     
     if utm_preview:
         # Экранирование для JS
