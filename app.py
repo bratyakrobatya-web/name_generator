@@ -578,7 +578,7 @@ st.markdown(f'''
 </style>
 
 <script>
-function copyToClipboard(text, buttonId) {{
+function copyToClipboard(button) {{
     var textarea = document.createElement('textarea');
     textarea.value = text;
     textarea.style.position = 'fixed';
