@@ -140,13 +140,14 @@ code, pre, .stCode {
     margin-bottom: 5px;
 }
 
-/* Простые серые блоки для текста */
+/* Простые светлые блоки для текста с темным текстом */
 [data-testid="stSidebar"] code {
     background: #e2e8f0 !important;
     border: none !important;
+    border-left: 3px solid #10b981 !important; /* Зеленый акцент слева для нейминга */
     border-radius: 4px !important;
     padding: 10px 12px !important;
-    color: #00ff88 !important; /* Яркий зеленый для нейминга */
+    color: #047857 !important; /* Темно-зеленый для нейминга */
     font-family: 'Courier New', monospace !important;
     font-size: 13px !important;
     display: block !important;
@@ -176,9 +177,10 @@ code, pre, .stCode {
     padding: 0 !important;
 }
 
-/* Фиолетовый текст для UTM */
+/* Темно-фиолетовый текст для UTM с фиолетовым акцентом */
 [data-testid="stSidebar"] .utm-code code {
-    color: #9333ea !important;
+    color: #6d28d9 !important;
+    border-left: 3px solid #9333ea !important;
 }
 
 /* Разделитель */
